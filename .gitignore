@@ -1,0 +1,31 @@
+# Node / frontend
+node_modules/
+dist/
+build/
+*.log
+
+# Vite
+.vite/
+
+# Python / backend
+__pycache__/
+*.py[cod]
+*.pyo
+.python-version
+.venv/
+venv/
+env/
+
+# Environment files
+.env
+backend/.env
+frontend/.env
+
+# Migrations cache / compiled
+migrations/*.pyc
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+
