@@ -1,4 +1,4 @@
-#!/Users/masonsommers/Desktop/Capstone/backend/.venv/bin/python3.12
+#!/home/reece/FinnApp/backend/.venv/bin/python3
 # -*- coding: utf-8 -*-
 import re
 import sys
