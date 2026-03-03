@@ -1,4 +1,5 @@
 import Home from "./pages/Home";
+import Navbar from "./components/Navbar";
 
 /**
  * Main App component
@@ -6,19 +7,23 @@ import Home from "./pages/Home";
  */
 function App() {
   return (
-    <main
+    <>
+      
+      <main
       style={{
+        paddingTop: "4rem", // ensure content sits below fixed nav
         minHeight: "100vh",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "linear-gradient(135deg, #7cbcec, #081348)",
+        background: "#7cbcec",
         color: "#e5e7eb",
         fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
       }}
-    >
-      <Home />
-    </main>
+      >
+        <Home />
+      </main>
+    </>
   );
 }
 
