@@ -1,4 +1,6 @@
 import Home from "./pages/Home";
+import DatabasePage from "./pages/Database";
+import PlaidIntegration from "./components/PlaidIntegration";
 
 /**
  * Main App component
@@ -17,7 +19,10 @@ function App() {
         fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
       }}
     >
-      <Home />
+      <DatabasePage />
+
+      <PlaidIntegration />
+      
     </main>
   );
 }
