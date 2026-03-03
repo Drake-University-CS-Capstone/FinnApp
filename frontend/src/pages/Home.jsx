@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { getHealth } from "../api/health";
 import StatusDot from "../components/StatusDot";
 import HealthCard from "../components/HealthCard";
-import Navbar from "../components/Navbar";
+
 
 /**
  * Home page component

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -15,41 +16,33 @@ export default function Navbar() {
 
           {/* Desktop Menu */}
           <div className="hidden md:flex space-x-8">
-            <a href="/" className="hover:text-gray-300 transition">
+            <Link to="/" className="hover:text-gray-300 transition">
               Home
-            </a>
-            <a href="/login" className="hover:text-gray-300 transition">
+            </Link>
+            <Link to="/login" className="hover:text-gray-300 transition">
               Login
-            </a>
-            <a href="/other" className="hover:text-gray-300 transition">
+            </Link>
+            <Link to="/other" className="hover:text-gray-300 transition">
               Other
-            </a>
+            </Link>
           </div>
 
-          {/* Mobile Button */}
-          <div className="md:hidden">
-            <button
-              onClick={() => setIsOpen(!isOpen)}
-              className="focus:outline-none"
-            >
-              ☰
-            </button>
-          </div>
+          
         </div>
       </div>
 
       {/* Mobile Menu */}
       {isOpen && (
         <div className="md:hidden bg-gray-800 px-4 pb-4 space-y-2">
-          <a href="/" className="block hover:text-gray-300">
+          <Link to="/" className="block hover:text-gray-300">
             Home
-          </a>
-          <a href="/login" className="block hover:text-gray-300">
+          </Link>
+          <Link to="/login" className="block hover:text-gray-300">
             Login
-          </a>
-          <a href="/other" className="block hover:text-gray-300">
+          </Link>
+          <Link to="/other" className="block hover:text-gray-300">
             Other
-          </a>
+          </Link>
         </div>
       )}
     </nav>
