@@ -23,6 +23,8 @@ frontend/.vite/
 
 # Env / config
 .env
+backend/.env
+frontend/.env
 *.env.local
 *.env.development
 *.env.production
