@@ -16,6 +16,7 @@ env/
 **/venv/
 **/env/
 **/.ven
+**/.venv
 
 # Python build artifacts
 build/

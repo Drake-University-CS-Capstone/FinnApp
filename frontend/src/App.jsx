@@ -1,3 +1,4 @@
+import PlaidIntegration from "./components/PlaidIntegration";
 import Home from "./pages/Home";
 
 /**
@@ -18,6 +19,7 @@ function App() {
       }}
     >
       <Home />
+      <PlaidIntegration/>
     </main>
   );
 }
