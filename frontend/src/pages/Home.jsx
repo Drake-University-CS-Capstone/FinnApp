@@ -3,6 +3,7 @@ import { getHealth } from "../api/health";
 import StatusDot from "../components/StatusDot";
 import HealthCard from "../components/HealthCard";
 
+
 /**
  * Home page component
  */
@@ -17,6 +18,7 @@ function Home() {
   }, []);
 
   return (
+    
     <section
       style={{
         maxWidth: 640,
@@ -29,6 +31,7 @@ function Home() {
         border: "1px solid rgba(148,163,184,0.3)"
       }}
     >
+      
       <h1
         style={{
           fontSize: "1.875rem",
