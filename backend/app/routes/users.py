@@ -74,21 +74,6 @@ def login():
     current_app.config["JWT_SECRET"],
     current_app.config["JWT_EXPIRES_MIN"],
     )
-    return jsonify({"message": "Login successful", "token": token}), 200
+    return jsonify({"message": "Login successful", "token": token, "user_id": str(user["_id"]), "email": user.get("email"), "firstName": user.get("firstName"), "lastName": user.get("lastName")}), 200
 
 
-@users_bp.get("/me")
-@auth_required
-def me():
-    """Return current user info (requires Authorization: Bearer <token>)."""
-    db = get_db()
-    users = db["Users"]
-    user = users.find_one({"_id": ObjectId(g.user_id)})
-    if not user:
-        return jsonify({"error": "User not found"}), 404
-    return jsonify({
-        "id": str(user["_id"]),
-        "email": user.get("email"),
-        "firstName": user.get("firstName"),
-        "lastName": user.get("lastName"),
-    }), 200
