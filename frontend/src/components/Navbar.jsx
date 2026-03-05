@@ -1,50 +1,89 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const pages = [
+    { label: "Home", to: "/" },
+    { label: "Reports", to: "/reports" },
+    { label: "Settings", to: "/settings" },
+    { label: "Other", to: "/other"}
+  ];
 
   return (
-    <nav className="fixed top-0 w-full bg-gray-900 text-white shadow-md z-10">
-      <div className="max-w-7xl mx-auto px-4">
-        <div className="flex justify-between items-center h-16">
-          
-          {/* Logo */}
-          <div className="text-xl font-bold">
+    <nav style={{
+      position: "fixed", top: 0, width: "100%", zIndex: 50,
+      background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
+      borderBottom: "1px solid rgba(99,102,241,0.25)",
+      fontFamily: "'DM Sans', sans-serif",
+    }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=Playfair+Display:wght@700&display=swap');
+        .nav-link { color: #94a3b8; text-decoration: none; font-size: 0.85rem; letter-spacing: 0.04em; transition: color 0.2s; }
+        .nav-link:hover { color: #e2e8f0; }
+        .dropdown-item { display: block; padding: 0.5rem 1.1rem; color: #94a3b8; text-decoration: none; font-size: 0.85rem; letter-spacing: 0.03em; border-radius: 6px; transition: background 0.15s, color 0.15s; }
+        .dropdown-item:hover { background: rgba(99,102,241,0.15); color: #e2e8f0; }
+        .login-btn { background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.4); color: #a5b4fc; text-decoration: none; padding: 0.35rem 1rem; border-radius: 8px; font-size: 0.82rem; letter-spacing: 0.05em; transition: background 0.2s, border-color 0.2s, color 0.2s; }
+        .login-btn:hover { background: rgba(99,102,241,0.3); border-color: rgba(99,102,241,0.7); color: #c7d2fe; }
+        .menu-btn { background: none; border: 1px solid rgba(99,102,241,0.3); color: #94a3b8; padding: 0.3rem 0.55rem; border-radius: 7px; cursor: pointer; font-size: 1rem; transition: border-color 0.2s, color 0.2s; display: flex; align-items: center; gap: 0.35rem; }
+        .menu-btn:hover { border-color: rgba(99,102,241,0.6); color: #e2e8f0; }
+        .dropdown-panel { position: absolute; top: calc(100% + 6px); left: 0; background: #0f172a; border: 1px solid rgba(99,102,241,0.2); border-radius: 10px; padding: 0.4rem; min-width: 160px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); animation: fadeIn 0.15s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+      `}</style>
+
+      <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 1.5rem" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", height: "58px" }}>
+
+          {/* Left — dropdown */}
+          <div ref={dropdownRef} style={{ position: "relative", justifySelf: "start" }}>
+            <button className="menu-btn" onClick={() => setIsOpen(o => !o)}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+              </svg>
+              <span style={{ fontSize: "0.78rem", letterSpacing: "0.04em" }}>Menu</span>
+            </button>
+            {isOpen && (
+              <div className="dropdown-panel">
+                {pages.map(p => (
+                  <Link key={p.to} to={p.to} className="dropdown-item" onClick={() => setIsOpen(false)}>
+                    {p.label}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Center — app name */}
+          <div style={{
+            fontFamily: "'Playfair Display', serif",
+            fontWeight: 700,
+            fontSize: "1.15rem",
+            color: "#e2e8f0",
+            letterSpacing: "0.01em",
+            whiteSpace: "nowrap",
+          }}>
             Financial Capstone
           </div>
 
-          {/* Desktop Menu */}
-          <div className="hidden md:flex space-x-8">
-            <Link to="/" className="hover:text-gray-300 transition">
-              Home
-            </Link>
-            <Link to="/login" className="hover:text-gray-300 transition">
-              Login
-            </Link>
-            <Link to="/other" className="hover:text-gray-300 transition">
-              Other
-            </Link>
+          {/* Right — login */}
+          <div style={{ justifySelf: "end" }}>
+            <Link to="/login" className="login-btn">Login</Link>
           </div>
 
-          
         </div>
       </div>
-
-      {/* Mobile Menu */}
-      {isOpen && (
-        <div className="md:hidden bg-gray-800 px-4 pb-4 space-y-2">
-          <Link to="/" className="block hover:text-gray-300">
-            Home
-          </Link>
-          <Link to="/login" className="block hover:text-gray-300">
-            Login
-          </Link>
-          <Link to="/other" className="block hover:text-gray-300">
-            Other
-          </Link>
-        </div>
-      )}
     </nav>
   );
 }
