@@ -1,40 +1,80 @@
-# OS / Editor
+############################
+# Python
+############################
+
+# Bytecode / cache
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+**/.venv/
+**/venv/
+**/env/
+
+# Python build artifacts
+build/
+dist/
+*.egg-info/
+.eggs/
+
+############################
+# Node / React / Vite
+############################
+
+node_modules/
+**/node_modules/
+
+dist/
+build/
+**/dist/
+**/build/
+
+vite.svg
+
+############################
+# Environment variables / secrets
+############################
+
+.env
+.env.*
+**/.env
+**/.env.*
+
+############################
+# Logs
+############################
+
+*.log
+logs/
+**/logs/
+
+############################
+# OS / Editor junk
+############################
+
 .DS_Store
-*.swp
-*.swo
+**/.DS_Store
+Thumbs.db
+
 .vscode/
 .idea/
 
-# Python
-__pycache__/
-*.py[cod]
-*.pyo
-.pytest_cache/
-.tox/
-.mypy_cache/
-.venv/
-venv/
+############################
+# Testing / coverage
+############################
 
-# Node / Frontend
-node_modules/
-frontend/node_modules/
-frontend/dist/
-frontend/.vite/
-
-# Env / config
-.env
-backend/.env
-frontend/.env
-*.env.local
-*.env.development
-*.env.production
-
-# Logs
-*.log
-logs/
-
-# Coverage / reports
+coverage/
 htmlcov/
-.coverage*
-coverage.xml
+.pytest_cache/
 
+############################
+# Misc
+############################
+
+*.sqlite3
+*.db
