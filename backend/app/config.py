@@ -3,10 +3,12 @@ import os
 
 class Config:
     """
-    Minimal configuration for the Flask app.
-
-    No database is configured. Add values here as needed
-    (e.g. SECRET_KEY, feature flags, API keys).
+    Configuration for the Flask app. Getting secrets from the environment variables.
     """
 
     SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key-change-me")
+    JWT_SECRET = os.getenv("JWT_SECRET", "dev-jwt-secret-change-me")
+    MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
+    MONGO_DB_NAME = os.getenv("MONGO_DB_NAME", "Capstone")
+    JWT_EXPIRES_MIN = int(os.getenv("JWT_EXPIRES_MIN", "1440")) # 24 hours
+    
