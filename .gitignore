@@ -15,6 +15,7 @@ env/
 **/.venv/
 **/venv/
 **/env/
+**/.ven
 
 # Python build artifacts
 build/
@@ -78,3 +79,4 @@ htmlcov/
 
 *.sqlite3
 *.db
+
