@@ -1,0 +1,38 @@
+# OS / Editor
+.DS_Store
+*.swp
+*.swo
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.tox/
+.mypy_cache/
+.venv/
+venv/
+
+# Node / Frontend
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Env / config
+.env
+*.env.local
+*.env.development
+*.env.production
+
+# Logs
+*.log
+logs/
+
+# Coverage / reports
+htmlcov/
+.coverage*
+coverage.xml
+
