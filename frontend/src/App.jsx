@@ -19,9 +19,9 @@ function App() {
         fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
       }}
     >
-      <DatabasePage />
-
       <PlaidIntegration />
+      
+      <DatabasePage />
       
     </main>
   );
