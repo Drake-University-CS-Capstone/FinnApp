@@ -1,0 +1,82 @@
+############################
+# Python
+############################
+
+# Bytecode / cache
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+**/.venv/
+**/venv/
+**/env/
+**/.ven
+
+# Python build artifacts
+build/
+dist/
+*.egg-info/
+.eggs/
+
+############################
+# Node / React / Vite
+############################
+
+node_modules/
+**/node_modules/
+
+dist/
+build/
+**/dist/
+**/build/
+
+vite.svg
+
+############################
+# Environment variables / secrets
+############################
+
+.env
+.env.*
+**/.env
+**/.env.*
+
+############################
+# Logs
+############################
+
+*.log
+logs/
+**/logs/
+
+############################
+# OS / Editor junk
+############################
+
+.DS_Store
+**/.DS_Store
+Thumbs.db
+
+.vscode/
+.idea/
+
+############################
+# Testing / coverage
+############################
+
+coverage/
+htmlcov/
+.pytest_cache/
+
+############################
+# Misc
+############################
+
+*.sqlite3
+*.db
+
