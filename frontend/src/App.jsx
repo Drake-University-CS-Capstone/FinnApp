@@ -1,6 +1,4 @@
 import Home from "./pages/Home";
-import DatabasePage from "./pages/Database";
-import PlaidIntegration from "./components/PlaidIntegration";
 
 /**
  * Main App component
@@ -19,10 +17,14 @@ function App() {
         fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
       }}
     >
+<<<<<<< HEAD
       <PlaidIntegration />
       
       <DatabasePage />
       
+=======
+      <Home />
+>>>>>>> parent of 2ff3d57 (Got working Plaid integration with our App)
     </main>
   );
 }
