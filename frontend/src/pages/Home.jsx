@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { getHealth } from "../api/health";
 import StatusDot from "../components/StatusDot";
 import HealthCard from "../components/HealthCard";
+import PlaidIntegration from "../components/PlaidIntegration";
 
 
 /**
@@ -43,16 +44,31 @@ function Home() {
           color: "purple"
         }}
       >
-        Capstone App
-        <StatusDot status={health} error={error} />
-      </h1>
+        <h1
+          style={{
+            fontSize: "1.875rem",
+            fontWeight: 700,
+            marginBottom: "1rem",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.5rem",
+            color: "red",
+          }}
+        >
+          Capstone App
+          <StatusDot status={health} error={error} />
+        </h1>
 
       <p style={{ marginBottom: "0.75rem", color: "#f5cbe1" }}>
         Flask + React + Azure SQL starter is running.
       </p>
 
-      <HealthCard health={health} error={error} />
-    </section>
+        <HealthCard health={health} error={error} />
+      </section>
+
+      {/* Plaid Dashboard */}
+      <PlaidIntegration />
+    </div>
   );
 }
 
