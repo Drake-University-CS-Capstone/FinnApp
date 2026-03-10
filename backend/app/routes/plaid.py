@@ -15,7 +15,7 @@ from plaid.model.item_public_token_exchange_request import ItemPublicTokenExchan
 from plaid.model.transactions_sync_request import TransactionsSyncRequest
 from plaid.model.accounts_balance_get_request import AccountsBalanceGetRequest
 
-load_dotenv()
+from ..config import Config
 
 # ---------------------------------------------------------------------------
 # Blueprint
@@ -25,12 +25,12 @@ plaid_bp = Blueprint("plaid", __name__, url_prefix="/api/plaid")
 # ---------------------------------------------------------------------------
 # Plaid client setup (reads from .env)
 # ---------------------------------------------------------------------------
-PLAID_CLIENT_ID = os.getenv("PLAID_CLIENT_ID")
-PLAID_SECRET = os.getenv("PLAID_SECRET")
-PLAID_ENV = os.getenv("PLAID_ENV", "sandbox")
-PLAID_PRODUCTS = os.getenv("PLAID_PRODUCTS", "transactions,balance").split(",")
-PLAID_COUNTRY_CODES = os.getenv("PLAID_COUNTRY_CODES", "US").split(",")
-PLAID_REDIRECT_URI = os.getenv("PLAID_REDIRECT_URI") or None
+PLAID_CLIENT_ID = Config.PLAID_CLIENT_ID
+PLAID_SECRET = Config.PLAID_SECRET
+PLAID_ENV = getattr(Config, "PLAID_ENV", "sandbox")
+PLAID_PRODUCTS = getattr(Config, "PLAID_PRODUCTS", "transactions,balance").split(",")
+PLAID_COUNTRY_CODES = getattr(Config, "PLAID_COUNTRY_CODES", "US").split(",")
+PLAID_REDIRECT_URI = getattr(Config, "PLAID_REDIRECT_URI", None)
 
 host = plaid.Environment.Production if PLAID_ENV == "production" else plaid.Environment.Sandbox
 
