@@ -1,6 +1,126 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { usePlaidLink } from 'react-plaid-link';
 
+const styles = {
+  card: {
+    marginTop: "1.5rem",
+    padding: "1rem 1.25rem",
+    borderRadius: "0.75rem",
+    background: "rgba(15,23,42,0.8)",
+    border: "1px solid rgba(55,65,81,0.8)",
+    fontSize: "0.9rem",
+    fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas",
+    color: "#e5e7eb",
+  },
+  label: {
+    marginBottom: "0.5rem",
+    fontWeight: 600,
+    color: "#e5e7eb",
+  },
+  muted: {
+    color: "#e5e7eb",
+  },
+  success: {
+    color: "#86efac",
+  },
+  error: {
+    color: "#fecaca",
+  },
+  button: {
+    marginTop: "0.75rem",
+    padding: "0.5rem 1.25rem",
+    borderRadius: "0.5rem",
+    border: "1px solid rgba(55,65,81,0.8)",
+    background: "rgba(30,41,59,0.9)",
+    color: "#e5e7eb",
+    fontSize: "0.875rem",
+    fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas",
+    cursor: "pointer",
+  },
+  buttonDisabled: {
+    opacity: 0.4,
+    cursor: "not-allowed",
+  },
+  tableHeader: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr 1fr 80px",
+    gap: "0.5rem",
+    padding: "0.5rem 0.75rem",
+    marginTop: "1rem",
+    borderBottom: "1px solid rgba(55,65,81,0.8)",
+    color: "#94a3b8",
+    fontSize: "0.75rem",
+    textTransform: "uppercase",
+    letterSpacing: "0.05em",
+  },
+  txRow: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr 1fr 80px",
+    gap: "0.5rem",
+    padding: "0.6rem 0.75rem",
+    borderBottom: "1px solid rgba(55,65,81,0.3)",
+    alignItems: "center",
+  },
+  txName: {
+    color: "#e5e7eb",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  },
+  txCategory: {
+    color: "#94a3b8",
+    fontSize: "0.8rem",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  },
+  txDate: {
+    color: "#94a3b8",
+    fontSize: "0.8rem",
+  },
+};
+
+function formatDate(dateStr) {
+  if (!dateStr) return '—';
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function formatAmount(amount) {
+  const abs = Math.abs(amount).toFixed(2);
+  const isIncome = amount < 0;
+  return (
+    <span style={{ color: isIncome ? '#86efac' : '#e5e7eb', textAlign: 'right', display: 'block' }}>
+      {isIncome ? '+' : '-'}${abs}
+    </span>
+  );
+}
+
+function TransactionList({ transactions }) {
+  const txList = transactions?.transactions || [];
+
+  if (txList.length === 0) {
+    return <div style={{ ...styles.muted, marginTop: '0.75rem' }}>No transactions found.</div>;
+  }
+
+  return (
+    <div style={{ marginTop: '0.5rem' }}>
+      <div style={styles.tableHeader}>
+        <span>Name</span>
+        <span>Date</span>
+        <span style={{ textAlign: 'right' }}>Amount</span>
+      </div>
+      {txList.map((tx) => (
+        <div key={tx.transaction_id} style={styles.txRow}>
+          <span style={styles.txName}>{tx.merchant_name || tx.name || '—'}</span>
+          <span style={styles.txDate}>{formatDate(tx.date)}</span>
+          {formatAmount(tx.amount)}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function PlaidIntegration() {
   const [linkToken, setLinkToken] = useState(null);
   const [isLinked, setIsLinked] = useState(false);
@@ -8,7 +128,6 @@ export default function PlaidIntegration() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // 1. Fetch the link_token from your Flask backend when the component loads
   useEffect(() => {
     const fetchLinkToken = async () => {
       try {
@@ -23,17 +142,13 @@ export default function PlaidIntegration() {
     fetchLinkToken();
   }, []);
 
-  // 2. Handle a successful login through Plaid Link
-  const onSuccess = useCallback(async (public_token, metadata) => {
-    console.log('Success! Public Token:', public_token);
+  const onSuccess = useCallback(async (public_token) => {
     try {
-      // Send the public_token to your backend to exchange for an access_token
       const response = await fetch('/api/plaid/set_access_token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ public_token }),
       });
-      
       if (response.ok) {
         setIsLinked(true);
       } else {
@@ -46,13 +161,8 @@ export default function PlaidIntegration() {
     }
   }, []);
 
-  // 3. Initialize the Plaid Link hook
-  const { open, ready } = usePlaidLink({
-    token: linkToken,
-    onSuccess,
-  });
+  const { open, ready } = usePlaidLink({ token: linkToken, onSuccess });
 
-  // 4. Fetch transactions once linked
   const fetchTransactions = async () => {
     setLoading(true);
     try {
@@ -68,41 +178,36 @@ export default function PlaidIntegration() {
   };
 
   return (
-    <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
-      <h2>Plaid Sandbox Integration</h2>
-      
-      {error && <p style={{ color: 'red' }}>Error: {error}</p>}
+    <div style={styles.card}>
+      <div style={styles.label}>Plaid integration</div>
+
+      {error && (
+        <div style={styles.error}>Error: {error}</div>
+      )}
 
       {!isLinked ? (
         <div>
-          <p>Status: Not Linked</p>
-          <button 
-            onClick={() => open()} 
+          <div style={styles.muted}>Status: not linked</div>
+          <button
+            onClick={() => open()}
             disabled={!ready || !linkToken}
-            style={{ padding: '10px 20px', fontSize: '16px', cursor: 'pointer' }}
+            style={{ ...styles.button, ...(!ready || !linkToken ? styles.buttonDisabled : {}) }}
           >
-            Link Bank Account
+            Link bank account
           </button>
         </div>
       ) : (
         <div>
-          <p style={{ color: 'green', fontWeight: 'bold' }}>Status: Linked successfully!</p>
-          <button 
+          <div style={styles.success}>Status: linked successfully</div>
+          <button
             onClick={fetchTransactions}
             disabled={loading}
-            style={{ padding: '10px 20px', fontSize: '16px', cursor: 'pointer', marginBottom: '20px' }}
+            style={{ ...styles.button, ...(loading ? styles.buttonDisabled : {}) }}
           >
-            {loading ? 'Fetching...' : 'Get Transactions'}
+            {loading ? 'Fetching...' : 'Get transactions'}
           </button>
 
-          {transactions && (
-            <div style={{ background: '#f4f4f4', padding: '15px', borderRadius: '5px' }}>
-              <h3>Transactions JSON</h3>
-              <pre style={{ overflowX: 'auto' }}>
-                {JSON.stringify(transactions, null, 2)}
-              </pre>
-            </div>
-          )}
+          {transactions && <TransactionList transactions={transactions} />}
         </div>
       )}
     </div>
