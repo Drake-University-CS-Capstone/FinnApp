@@ -19,7 +19,6 @@ function App() {
       }}
     >
       <Home />
-      <PlaidIntegration/>
     </main>
   );
 }
