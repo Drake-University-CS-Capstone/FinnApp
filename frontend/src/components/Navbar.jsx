@@ -1,9 +1,12 @@
 import { useState, useRef, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { logout } from "../api/auth";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const navigate = useNavigate();
+  const [hasToken, setHasToken] = useState(() => Boolean(localStorage.getItem("token")));
 
   useEffect(() => {
     function handleClickOutside(e) {
@@ -13,6 +16,14 @@ export default function Navbar() {
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    const onStorage = (e) => {
+      if (e.key === "token") setHasToken(Boolean(e.newValue));
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
   }, []);
 
   const pages = [
@@ -79,7 +90,21 @@ export default function Navbar() {
 
           {/* Right — login */}
           <div style={{ justifySelf: "end" }}>
-            <Link to="/login" className="login-btn">Login</Link>
+            {hasToken ? (
+              <button
+                type="button"
+                className="login-btn"
+                onClick={async () => {
+                  await logout();
+                  setHasToken(false);
+                  navigate("/login", { replace: true });
+                }}
+              >
+                Sign out
+              </button>
+            ) : (
+              <Link to="/login" className="login-btn">Login</Link>
+            )}
           </div>
 
         </div>
