@@ -19,29 +19,17 @@ function Home() {
   }, []);
 
   return (
-    
-    <section
-      style={{
-        maxWidth: 640,
-        width: "100%",
-        padding: "2.5rem",
-        borderRadius: "1.5rem",
-        background: "rgb(59, 122, 222)",
-        boxShadow:
-          "0 20px 25px -5px rgba(15,23,42,0.8), 0 10px 10px -5px rgba(15,23,42,0.8)",
-        border: "1px solid rgba(148,163,184,0.3)"
-      }}
-    >
-      
-      <h1
+    <div>
+      <section
         style={{
-          fontSize: "1.875rem",
-          fontWeight: 700,
-          marginBottom: "1rem",
-          display: "flex",
-          alignItems: "center",
-          gap: "0.5rem",
-          color: "purple"
+          maxWidth: 640,
+          width: "100%",
+          padding: "2.5rem",
+          borderRadius: "1.5rem",
+          background: "rgb(59, 122, 222)",
+          boxShadow:
+            "0 20px 25px -5px rgba(15,23,42,0.8), 0 10px 10px -5px rgba(15,23,42,0.8)",
+          border: "1px solid rgba(148,163,184,0.3)"
         }}
       >
         <h1
@@ -52,16 +40,16 @@ function Home() {
             display: "flex",
             alignItems: "center",
             gap: "0.5rem",
-            color: "red",
+            color: "purple"
           }}
         >
           Capstone App
           <StatusDot status={health} error={error} />
         </h1>
 
-      <p style={{ marginBottom: "0.75rem", color: "#f5cbe1" }}>
-        Flask + React + Azure SQL starter is running.
-      </p>
+        <p style={{ marginBottom: "0.75rem", color: "#f5cbe1" }}>
+          Flask + React + Azure SQL starter is running.
+        </p>
 
         <HealthCard health={health} error={error} />
       </section>

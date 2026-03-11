@@ -13,7 +13,6 @@ Jinja2==3.1.6
 MarkupSafe==3.0.3
 mccabe==0.7.0
 nulltype==2.3.1
-plaid==0.1.7
 plaid-python==38.3.0
 pycodestyle==2.14.0
 pyflakes==3.4.0
