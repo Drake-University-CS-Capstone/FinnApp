@@ -19,7 +19,7 @@ function App() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "#7cbcec",
+          background: "#0d1424",
           color: "#e5e7eb",
           fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
         }}
