@@ -16,7 +16,7 @@ export default function Navbar() {
   }, []);
 
   const pages = [
-    { label: "Home", to: "/" },
+    { label: "Home", to: "/home" },
     { label: "Reports", to: "/reports" },
     { label: "Settings", to: "/settings" },
     { label: "Other", to: "/other"}

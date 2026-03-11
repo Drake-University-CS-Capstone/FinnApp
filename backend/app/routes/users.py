@@ -8,6 +8,23 @@ from app.middleware.auth_required import auth_required
 users_bp = Blueprint("users", __name__, url_prefix="/api")
 
 
+@users_bp.get("/me")
+@auth_required
+def me():
+    """Return the current user from the JWT. Requires Authorization: Bearer <token>."""
+    db = get_db()
+    users = db["Users"]
+    user = users.find_one({"_id": ObjectId(g.user_id)})
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    return jsonify({
+        "user_id": str(user["_id"]),
+        "email": user.get("email"),
+        "firstName": user.get("firstName"),
+        "lastName": user.get("lastName"),
+    }), 200
+
+
 @users_bp.post("/signup")
 def signup():
     """

@@ -1,25 +1,30 @@
-import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation, Link } from "react-router-dom";
+import { login } from "../api/auth";
 
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state?.message) {
+      setSuccessMessage(location.state.message);
+      window.history.replaceState({}, document.title, location.pathname);
+    }
+  }, [location.state?.message, location.pathname]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
     try {
-      const resp = await fetch("/api/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-      if (!resp.ok) throw new Error("Invalid credentials");
-      navigate("/");
+      await login({ email, password });
+      navigate("/home", { replace: true });
     } catch (err) {
       setError(err.message || "Login failed");
     } finally {
@@ -97,6 +102,17 @@ function Login() {
           </div>
         </div>
 
+        {/* Success (e.g. after signup) */}
+        {successMessage && (
+          <div style={{
+            background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.3)",
+            borderRadius: "8px", color: "#86efac",
+            padding: "0.6rem 0.9rem", marginBottom: "1.2rem", fontSize: "0.85rem",
+          }}>
+            {successMessage}
+          </div>
+        )}
+
         {/* Error */}
         {error && (
           <div style={{
@@ -145,7 +161,7 @@ function Login() {
 
         {/* New user link */}
         <div style={{ textAlign: "center", marginTop: "1.4rem" }}>
-          <Link to="/Login_new" className="new-user-link">New User?</Link>
+          <Link to="/signup" className="new-user-link">New user? Create account</Link>
         </div>
       </div>
     </div>

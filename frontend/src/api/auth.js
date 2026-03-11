@@ -11,25 +11,30 @@
  */
 export const signup = async ({ email, password, firstName, lastName, phoneNumber = "" }) => {
   const body = {
-    email,
-    password,
-    first_name: firstName,
-    last_name: lastName,
-    phone: phoneNumber,
+    email: (email || "").trim(),
+    password: password || "",
+    first_name: (firstName || "").trim(),
+    last_name: (lastName || "").trim(),
+    phone: (phoneNumber != null && String(phoneNumber).trim()) ? String(phoneNumber).trim() : "",
   };
 
-  const response = await fetch("/api/signup", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
+  let response;
+  try {
+    response = await fetch("/api/signup", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+  } catch (err) {
+    throw new Error("Could not reach server. Is the backend running on port 5000?");
+  }
 
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    const message = data.error || `HTTP error! status: ${response.status}`;
+    const message = data.error || `Signup failed (${response.status})`;
     throw new Error(message);
   }
 
@@ -68,5 +73,31 @@ export const login = async ({ email, password }) => {
 export const logout = async () => {
   localStorage.removeItem("token");
   return "Logged out successfully";
+};
+
+/**
+ * Returns headers to send the JWT for authenticated API requests.
+ * Use with fetch: { ...getAuthHeaders(), "Content-Type": "application/json" }
+ * @returns {{ Authorization?: string }}
+ */
+export const getAuthHeaders = () => {
+  const token = localStorage.getItem("token");
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
+/**
+ * Fetch current user (validates JWT). Use to verify token is accepted by the backend.
+ * @returns {Promise<{ user_id: string, email?: string, firstName?: string, lastName?: string }>}
+ */
+export const getMe = async () => {
+  const response = await fetch("/api/me", {
+    headers: getAuthHeaders(),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const msg = data.error || `HTTP ${response.status}`;
+    throw new Error(msg);
+  }
+  return data;
 };
 

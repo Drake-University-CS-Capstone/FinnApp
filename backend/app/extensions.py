@@ -1,6 +1,7 @@
 from flask_cors import CORS
 from flask import current_app
 from pymongo import MongoClient
+import certifi
 import jwt
 from datetime import datetime, timedelta, timezone
 
@@ -12,7 +13,9 @@ _mongo_client = None
 def get_db():
     global _mongo_client
     if _mongo_client is None:
-        _mongo_client = MongoClient(current_app.config["MONGODB_URI"])
+        uri = current_app.config["MONGODB_URI"]
+        # Use certifi CA bundle so MongoDB Atlas SSL works on macOS (avoids CERTIFICATE_VERIFY_FAILED)
+        _mongo_client = MongoClient(uri, tlsCAFile=certifi.where())
     return _mongo_client[current_app.config["MONGO_DB_NAME"]]
 
 
