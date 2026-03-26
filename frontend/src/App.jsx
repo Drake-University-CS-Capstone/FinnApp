@@ -1,13 +1,14 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import PlaidIntegration from "./components/PlaidIntegration";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
+import Signup from "./pages/Signup";
 import Other from "./pages/other";
 import Navbar from "./components/Navbar";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 /**
  * Main App component
- * Handles routing and layout
+ * First page is login. Login and signup are public; all other routes are protected.
  */
 function App() {
   return (
@@ -20,23 +21,17 @@ function App() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "#7cbcec",
+          background: "#0d1424",
           color: "#e5e7eb",
           fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
         }}
       >
         <Routes>
-          <Route
-            path="/"
-            element={
-              <>
-                <Home />
-                <PlaidIntegration />
-              </>
-            }
-          />
+          <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/other" element={<Other />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+          <Route path="/other" element={<ProtectedRoute><Other /></ProtectedRoute>} />
         </Routes>
       </main>
     </Router>
