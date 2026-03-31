@@ -1,4 +1,4 @@
-import PlaidIntegration from "../components/PlaidIntegration";
+import PlaidIntegration from "../components/Dashboard";
 
 function Home() {
   return (

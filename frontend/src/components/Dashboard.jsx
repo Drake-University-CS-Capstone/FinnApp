@@ -10,7 +10,7 @@ import {
 // ── Fonts (matches navbar) ────────────────────────────────────────────────────
 const FONT_LINK = 'https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Playfair+Display:wght@700&display=swap';
 
-// ── Tokens (pulled straight from navbar palette) ─────────────────────────────
+// ── Tokens ────────────────────────────────────────────────────────────────────
 const T = {
   bg:         '#0d1424',
   surface:    'rgba(255,255,255,0.03)',
@@ -32,17 +32,17 @@ const T = {
 
 // ── Category config ───────────────────────────────────────────────────────────
 const CAT = {
-  FOOD_AND_DRINK: {label: 'Food & Drink' },
-  TRANSPORTATION: {label: 'Transport' },
-  SHOPPING:       {label: 'Shopping' },
-  ENTERTAINMENT:  {label: 'Entertainment' },
-  INCOME:         {label: 'Income' },
-  TRANSFER_IN:    {label: 'Transfer In' },
-  TRANSFER_OUT:   {label: 'Transfer Out' },
-  TRAVEL:         {label: 'Travel' },
-  HEALTH:         {label: 'Health' },
-  LOAN_PAYMENTS:  {label: 'Loan Payment' },
-  OTHER:          {label: 'Other' },
+  FOOD_AND_DRINK: { label: 'Food & Drink' },
+  TRANSPORTATION: { label: 'Transport' },
+  SHOPPING:       { label: 'Shopping' },
+  ENTERTAINMENT:  { label: 'Entertainment' },
+  INCOME:         { label: 'Income' },
+  TRANSFER_IN:    { label: 'Transfer In' },
+  TRANSFER_OUT:   { label: 'Transfer Out' },
+  TRAVEL:         { label: 'Travel' },
+  HEALTH:         { label: 'Health' },
+  LOAN_PAYMENTS:  { label: 'Loan Payment' },
+  OTHER:          { label: 'Other' },
 };
 const getCat = k => CAT[k] || CAT.OTHER;
 
@@ -54,13 +54,12 @@ const fmtDate = s => {
   return new Date(s + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
-// ── Left panel: balances + spending summary ───────────────────────────────────
+// ── Left panel ────────────────────────────────────────────────────────────────
 function LeftPanel({ accounts, transactions }) {
   const txList = transactions?.transactions || [];
   const totalSpent  = txList.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0);
   const totalIncome = txList.filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
 
-  // Spending by category
   const byCat = {};
   txList.filter(t => t.amount > 0).forEach(t => {
     const k = t.category || 'OTHER';
@@ -70,17 +69,12 @@ function LeftPanel({ accounts, transactions }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
-
-      {/* Account balance cards */}
       {accounts?.map(acct => {
         const isCredit = acct.type?.includes('credit');
         return (
           <div key={acct.account_id} style={{
-            padding: '1.25rem 1.4rem',
-            borderRadius: '12px',
-            background: T.surface,
-            border: `1px solid ${T.border}`,
-            transition: 'border-color 0.2s',
+            padding: '1.25rem 1.4rem', borderRadius: '12px',
+            background: T.surface, border: `1px solid ${T.border}`, transition: 'border-color 0.2s',
           }}
             onMouseEnter={e => e.currentTarget.style.borderColor = T.borderHov}
             onMouseLeave={e => e.currentTarget.style.borderColor = T.border}
@@ -100,11 +94,9 @@ function LeftPanel({ accounts, transactions }) {
               </div>
             )}
             <div style={{
-              marginTop: '0.75rem',
-              display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
+              marginTop: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
               fontSize: '0.7rem', fontWeight: 500, letterSpacing: '0.05em',
-              color: isCredit ? T.red : T.green,
-              background: isCredit ? T.redBg : T.greenBg,
+              color: isCredit ? T.red : T.green, background: isCredit ? T.redBg : T.greenBg,
               padding: '0.2rem 0.6rem', borderRadius: '99px',
             }}>
               <span style={{ width: 5, height: 5, borderRadius: '50%', background: isCredit ? T.red : T.green, display: 'inline-block' }} />
@@ -114,11 +106,7 @@ function LeftPanel({ accounts, transactions }) {
         );
       })}
 
-      {/* Cash flow summary */}
-      <div style={{
-        padding: '1.25rem 1.4rem', borderRadius: '12px',
-        background: T.surface, border: `1px solid ${T.border}`,
-      }}>
+      <div style={{ padding: '1.25rem 1.4rem', borderRadius: '12px', background: T.surface, border: `1px solid ${T.border}` }}>
         <div style={{ fontSize: '0.72rem', fontWeight: 600, color: T.muted, letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: '1rem' }}>
           Cash flow
         </div>
@@ -141,12 +129,8 @@ function LeftPanel({ accounts, transactions }) {
         </div>
       </div>
 
-      {/* Top spending categories */}
       {topCats.length > 0 && (
-        <div style={{
-          padding: '1.25rem 1.4rem', borderRadius: '12px',
-          background: T.surface, border: `1px solid ${T.border}`,
-        }}>
+        <div style={{ padding: '1.25rem 1.4rem', borderRadius: '12px', background: T.surface, border: `1px solid ${T.border}` }}>
           <div style={{ fontSize: '0.72rem', fontWeight: 600, color: T.muted, letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: '1rem' }}>
             Top spending
           </div>
@@ -157,15 +141,14 @@ function LeftPanel({ accounts, transactions }) {
               return (
                 <div key={key}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem' }}>
-                    <span style={{ fontSize: '0.8rem', color: T.muted }}>{cat.icon} {cat.label}</span>
+                    <span style={{ fontSize: '0.8rem', color: T.muted }}>{cat.label}</span>
                     <span style={{ fontSize: '0.8rem', fontWeight: 600, color: T.text }}>{fmtUSD(amt)}</span>
                   </div>
                   <div style={{ height: 4, background: 'rgba(99,102,241,0.1)', borderRadius: 99, overflow: 'hidden' }}>
                     <div style={{
                       height: '100%', width: `${pct}%`,
                       background: 'linear-gradient(90deg, rgba(99,102,241,0.6), rgba(165,180,252,0.8))',
-                      borderRadius: 99,
-                      transition: 'width 0.6s cubic-bezier(.4,0,.2,1)',
+                      borderRadius: 99, transition: 'width 0.6s cubic-bezier(.4,0,.2,1)',
                     }} />
                   </div>
                 </div>
@@ -178,7 +161,7 @@ function LeftPanel({ accounts, transactions }) {
   );
 }
 
-// ── Right panel: transaction list ─────────────────────────────────────────────
+// ── Right panel ───────────────────────────────────────────────────────────────
 function RightPanel({ transactions }) {
   const txList = transactions?.transactions || [];
   const [filter, setFilter] = useState('ALL');
@@ -192,12 +175,10 @@ function RightPanel({ transactions }) {
       background: T.surface, border: `1px solid ${T.border}`,
       borderRadius: '12px', overflow: 'hidden', height: '100%',
     }}>
-      {/* Panel header */}
       <div style={{ padding: '1.25rem 1.4rem', borderBottom: `1px solid ${T.border}` }}>
         <div style={{ fontSize: '0.72rem', fontWeight: 600, color: T.muted, letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: '0.75rem' }}>
           Transactions · {txList.length} total
         </div>
-        {/* Filter pills */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
           {categories.map(cat => {
             const active = filter === cat;
@@ -208,8 +189,7 @@ function RightPanel({ transactions }) {
                 border: `1px solid ${active ? T.accentBord : 'rgba(99,102,241,0.15)'}`,
                 background: active ? T.accentBg : 'transparent',
                 color: active ? T.accent : T.muted,
-                cursor: 'pointer', fontFamily: T.sans,
-                transition: 'all 0.15s',
+                cursor: 'pointer', fontFamily: T.sans, transition: 'all 0.15s',
               }}>
                 {cat === 'ALL' ? 'All' : getCat(cat).label}
               </button>
@@ -218,7 +198,6 @@ function RightPanel({ transactions }) {
         </div>
       </div>
 
-      {/* Column headers */}
       <div style={{
         display: 'grid', gridTemplateColumns: '28px 1fr 100px 88px',
         gap: '0.6rem', padding: '0.5rem 1.4rem',
@@ -233,7 +212,6 @@ function RightPanel({ transactions }) {
         ))}
       </div>
 
-      {/* Rows */}
       <div style={{ overflowY: 'auto', flex: 1 }}>
         {filtered.length === 0
           ? <div style={{ padding: '2rem 1.4rem', color: T.muted, fontSize: '0.82rem' }}>No transactions in this category.</div>
@@ -246,8 +224,7 @@ function RightPanel({ transactions }) {
                   alignItems: 'center', gap: '0.6rem',
                   padding: '0.65rem 1.4rem',
                   borderBottom: `1px solid rgba(99,102,241,0.07)`,
-                  transition: 'background 0.12s',
-                  cursor: 'default',
+                  transition: 'background 0.12s', cursor: 'default',
                 }}
                   onMouseEnter={e => e.currentTarget.style.background = T.surfaceHov}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
@@ -272,23 +249,68 @@ function RightPanel({ transactions }) {
   );
 }
 
-// ── Dashboard (linked state) ──────────────────────────────────────────────────
-function Dashboard({ onDisconnect }) {
+// ── Error Banner ──────────────────────────────────────────────────────────────
+function ErrorBanner({ message, onReconnect }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      gap: '1rem', flexWrap: 'wrap',
+      padding: '0.75rem 1.1rem',
+      marginBottom: '1.25rem',
+      borderRadius: '10px',
+      background: T.redBg,
+      border: `1px solid rgba(252,165,165,0.25)`,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+          <circle cx="12" cy="12" r="10" stroke={T.red} strokeWidth="2" />
+          <path d="M12 8v4M12 16h.01" stroke={T.red} strokeWidth="2" strokeLinecap="round" />
+        </svg>
+        <span style={{ fontSize: '0.82rem', color: T.red }}>{message}</span>
+      </div>
+      <button
+        onClick={onReconnect}
+        style={{
+          background: 'transparent',
+          border: `1px solid rgba(252,165,165,0.4)`,
+          color: T.red,
+          padding: '0.3rem 0.9rem',
+          borderRadius: '7px',
+          fontSize: '0.78rem',
+          fontWeight: 500,
+          fontFamily: T.sans,
+          cursor: 'pointer',
+          whiteSpace: 'nowrap',
+          transition: 'all 0.2s',
+        }}
+        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(252,165,165,0.1)'; e.currentTarget.style.borderColor = T.red; }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'rgba(252,165,165,0.4)'; }}
+      >
+        Reconnect
+      </button>
+    </div>
+  );
+}
+
+// ── Dashboard ─────────────────────────────────────────────────────────────────
+function Dashboard({ onReconnect }) {
   const [transactions, setTransactions] = useState(null);
   const [accounts,     setAccounts]     = useState(null);
   const [loadingTx,    setLoadingTx]    = useState(true);
   const [loadingBal,   setLoadingBal]   = useState(true);
-  const [error,        setError]        = useState(null);
+  const [errors,       setErrors]       = useState([]);
+
+  const addError = msg => setErrors(prev => prev.includes(msg) ? prev : [...prev, msg]);
 
   useEffect(() => {
     fetchTransactions()
       .then(setTransactions)
-      .catch((e) => setError(e.message))
+      .catch(e => addError(e.message || 'Failed to load transactions.'))
       .finally(() => setLoadingTx(false));
 
     fetchBalances()
       .then(d => setAccounts(d.accounts))
-      .catch((e) => setError(e.message))
+      .catch(e => addError(e.message || 'Failed to load balances.'))
       .finally(() => setLoadingBal(false));
   }, []);
 
@@ -297,30 +319,15 @@ function Dashboard({ onDisconnect }) {
   return (
     <div style={{ fontFamily: T.sans, color: T.text }}>
       <link rel="stylesheet" href={FONT_LINK} />
-
-      {/* Top bar */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
         <h2 style={{ margin: 0, fontFamily: T.display, fontSize: '1.6rem', color: T.text, letterSpacing: '-0.01em' }}>
           My Finances
         </h2>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem', color: T.green }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: T.green, boxShadow: `0 0 6px ${T.green}`, display: 'inline-block' }} />
-            Sandbox · Live
-          </div>
-          <button onClick={onDisconnect} style={{
-            background: 'transparent', border: `1px solid rgba(99,102,241,0.3)`,
-            color: T.muted, padding: '0.3rem 0.85rem', borderRadius: '8px',
-            fontSize: '0.8rem', letterSpacing: '0.04em', cursor: 'pointer',
-            fontFamily: T.sans, transition: 'border-color 0.2s, color 0.2s',
-          }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.6)'; e.currentTarget.style.color = T.text; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.3)'; e.currentTarget.style.color = T.muted; }}
-          >Disconnect</button>
-        </div>
       </div>
 
-      {error && <div style={{ color: T.red, fontSize: '0.82rem', marginBottom: '1rem' }}>{error}</div>}
+      {errors.length > 0 && (
+        <ErrorBanner message="There was a problem loading your account data." onReconnect={onReconnect} />
+      )}
 
       {loading ? (
         <div style={{ color: T.muted, fontSize: '0.85rem', padding: '2rem 0' }}>Loading your data…</div>
@@ -336,38 +343,113 @@ function Dashboard({ onDisconnect }) {
   );
 }
 
-// ── Link prompt ───────────────────────────────────────────────────────────────
-function LinkPrompt({ onLink, ready, linkToken, error }) {
+// ── Plaid Link Modal ──────────────────────────────────────────────────────────
+function PlaidLinkModal({ onLink, onSkip, ready, linkToken, error }) {
   return (
-    <div style={{ fontFamily: T.sans }}>
-      <link rel="stylesheet" href={FONT_LINK} />
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3rem 1rem', textAlign: 'center' }}>
-        <h2 style={{ fontFamily: T.display, fontSize: '1.8rem', color: T.text, margin: '0 0 0.5rem', letterSpacing: '-0.01em' }}>
-          Connect your bank
-        </h2>
-        <p style={{ color: T.muted, fontSize: '0.85rem', letterSpacing: '0.04em', margin: '0 0 2rem', maxWidth: 320 }}>
-          Securely link your account with Plaid to view balances and transactions.
-        </p>
-        {error && <div style={{ color: T.red, fontSize: '0.82rem', marginBottom: '1rem' }}>{error}</div>}
+    // Backdrop — darkens + blurs whatever is behind the modal
+    <div style={{
+      position: 'fixed',
+      inset: 0,
+      zIndex: 100,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backdropFilter: 'blur(6px) brightness(0.55)',
+      WebkitBackdropFilter: 'blur(6px) brightness(0.55)',
+      padding: '1rem',
+    }}>
+      {/* Modal card */}
+      <div style={{
+        background: '#131c2e',
+        border: `1px solid ${T.border}`,
+        borderRadius: '16px',
+        padding: '2rem',
+        width: '100%',
+        maxWidth: '400px',
+        boxShadow: '0 32px 64px rgba(0,0,0,0.7), 0 0 0 1px rgba(99,102,241,0.08)',
+        fontFamily: T.sans,
+      }}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', marginBottom: '1.75rem' }}>
+          <div style={{
+            width: 44, height: 44, borderRadius: '12px', flexShrink: 0, marginTop: 2,
+            background: T.accentBg, border: `1px solid ${T.accentBord}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"
+                stroke={T.accent} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
+          <div>
+            <h2 style={{ margin: 0, fontFamily: T.display, fontSize: '1.25rem', color: T.text, letterSpacing: '-0.01em' }}>
+              Connect Your Bank
+            </h2>
+            <p style={{ margin: '0.35rem 0 0', fontSize: '0.82rem', color: T.muted, lineHeight: 1.5 }}>
+              Link your accounts to unlock your full financial picture.
+            </p>
+          </div>
+        </div>
+
+        {error && <div style={{ color: T.red, fontSize: '0.8rem', marginBottom: '1rem' }}>{error}</div>}
+
+        {/* Primary CTA */}
         <button
           onClick={onLink}
           disabled={!ready || !linkToken}
           style={{
+            width: '100%',
+            padding: '0.7rem',
             background: T.accentBg,
             border: `1px solid ${T.accentBord}`,
             color: T.accent,
-            padding: '0.55rem 1.75rem', borderRadius: '8px',
-            fontSize: '0.85rem', letterSpacing: '0.05em',
-            fontFamily: T.sans, cursor: ready && linkToken ? 'pointer' : 'not-allowed',
+            borderRadius: '10px',
+            fontSize: '0.875rem',
+            fontWeight: 500,
+            letterSpacing: '0.04em',
+            fontFamily: T.sans,
+            cursor: ready && linkToken ? 'pointer' : 'not-allowed',
             opacity: ready && linkToken ? 1 : 0.5,
-            transition: 'background 0.2s, border-color 0.2s, color 0.2s',
+            transition: 'all 0.2s',
           }}
-          onMouseEnter={e => { if (ready && linkToken) { e.currentTarget.style.background = 'rgba(99,102,241,0.3)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.7)'; e.currentTarget.style.color = '#c7d2fe'; }}}
-          onMouseLeave={e => { e.currentTarget.style.background = T.accentBg; e.currentTarget.style.borderColor = T.accentBord; e.currentTarget.style.color = T.accent; }}
+          onMouseEnter={e => { if (ready && linkToken) { e.currentTarget.style.background = 'rgba(99,102,241,0.3)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.7)'; }}}
+          onMouseLeave={e => { e.currentTarget.style.background = T.accentBg; e.currentTarget.style.borderColor = T.accentBord; }}
         >
           {!linkToken ? 'Initializing…' : 'Link bank account'}
         </button>
-        <p style={{ marginTop: '1rem', fontSize: '0.72rem', color: T.muted, letterSpacing: '0.04em' }}>🔒 Secured by Plaid · Sandbox mode</p>
+
+        {/* Divider */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', margin: '1.1rem 0' }}>
+          <div style={{ flex: 1, height: 1, background: 'rgba(99,102,241,0.12)' }} />
+          <span style={{ fontSize: '0.7rem', color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>or</span>
+          <div style={{ flex: 1, height: 1, background: 'rgba(99,102,241,0.12)' }} />
+        </div>
+
+        {/* Skip button */}
+        <button
+          onClick={onSkip}
+          style={{
+            width: '100%',
+            padding: '0.7rem',
+            background: 'transparent',
+            border: `1px solid rgba(99,102,241,0.15)`,
+            color: T.muted,
+            borderRadius: '10px',
+            fontSize: '0.875rem',
+            fontWeight: 400,
+            fontFamily: T.sans,
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.35)'; e.currentTarget.style.color = T.text; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.15)'; e.currentTarget.style.color = T.muted; }}
+        >
+          Already connected — go to dashboard
+        </button>
+
+        <p style={{ marginTop: '1rem', fontSize: '0.7rem', color: '#334155', textAlign: 'center', lineHeight: 1.5 }}>
+          🔒 Your credentials are never stored. Secured via Plaid's encrypted connection.
+        </p>
       </div>
     </div>
   );
@@ -377,6 +459,7 @@ function LinkPrompt({ onLink, ready, linkToken, error }) {
 export default function PlaidIntegration() {
   const [linkToken, setLinkToken] = useState(null);
   const [isLinked,  setIsLinked]  = useState(false);
+  const [showModal, setShowModal] = useState(() => localStorage.getItem('plaid_linked') !== 'true');
   const [error,     setError]     = useState(null);
 
   useEffect(() => {
@@ -388,14 +471,29 @@ export default function PlaidIntegration() {
   const onSuccess = useCallback(async (public_token) => {
     try {
       await setAccessToken(public_token);
-      setIsLinked(true);
-    } catch (e) { 
-      setError(e.message || 'Token exchange failed.'); 
+      window.location.reload();
+    } catch (e) {
+      setError(e.message || 'Token exchange failed.');
     }
   }, []);
 
   const { open, ready } = usePlaidLink({ token: linkToken, onSuccess });
 
-  if (isLinked) return <Dashboard onDisconnect={() => setIsLinked(false)} />;
-  return <LinkPrompt onLink={() => open()} ready={ready} linkToken={linkToken} error={error} />;
+  return (
+    <>
+      {/* Dashboard always renders underneath */}
+      <Dashboard onReconnect={() => setShowModal(true)} />
+
+      {/* Modal overlays on top when not yet linked */}
+      {showModal && !isLinked && (
+        <PlaidLinkModal
+          onLink={() => open()}
+          onSkip={() => setShowModal(false)}
+          ready={ready}
+          linkToken={linkToken}
+          error={error}
+        />
+      )}
+    </>
+  );
 }
