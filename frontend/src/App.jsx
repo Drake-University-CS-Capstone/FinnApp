@@ -3,6 +3,8 @@ import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Other from "./pages/other";
+import Reports from "./pages/Reports";
+import StockMarket from "./pages/Stock_market";
 import Navbar from "./components/Navbar";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -31,7 +33,10 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+          <Route path="/stock-market" element={<ProtectedRoute><StockMarket /></ProtectedRoute>} />
+          <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
           <Route path="/other" element={<ProtectedRoute><Other /></ProtectedRoute>} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </main>
     </Router>
