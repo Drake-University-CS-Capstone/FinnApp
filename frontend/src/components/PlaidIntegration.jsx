@@ -1,5 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { usePlaidLink } from 'react-plaid-link';
+import { 
+  createLinkToken, 
+  setAccessToken, 
+  fetchTransactions, 
+  fetchBalances 
+} from '../api/plaid';
 
 // ── Fonts (matches navbar) ────────────────────────────────────────────────────
 const FONT_LINK = 'https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Playfair+Display:wght@700&display=swap';
@@ -26,17 +32,17 @@ const T = {
 
 // ── Category config ───────────────────────────────────────────────────────────
 const CAT = {
-  FOOD_AND_DRINK: { icon: '🍔', label: 'Food & Drink' },
-  TRANSPORTATION: { icon: '🚗', label: 'Transport' },
-  SHOPPING:       { icon: '🛍️', label: 'Shopping' },
-  ENTERTAINMENT:  { icon: '🎬', label: 'Entertainment' },
-  INCOME:         { icon: '💰', label: 'Income' },
-  TRANSFER_IN:    { icon: '↙️', label: 'Transfer In' },
-  TRANSFER_OUT:   { icon: '↗️', label: 'Transfer Out' },
-  TRAVEL:         { icon: '✈️', label: 'Travel' },
-  HEALTH:         { icon: '❤️', label: 'Health' },
-  LOAN_PAYMENTS:  { icon: '🏦', label: 'Loan Payment' },
-  OTHER:          { icon: '📋', label: 'Other' },
+  FOOD_AND_DRINK: {label: 'Food & Drink' },
+  TRANSPORTATION: {label: 'Transport' },
+  SHOPPING:       {label: 'Shopping' },
+  ENTERTAINMENT:  {label: 'Entertainment' },
+  INCOME:         {label: 'Income' },
+  TRANSFER_IN:    {label: 'Transfer In' },
+  TRANSFER_OUT:   {label: 'Transfer Out' },
+  TRAVEL:         {label: 'Travel' },
+  HEALTH:         {label: 'Health' },
+  LOAN_PAYMENTS:  {label: 'Loan Payment' },
+  OTHER:          {label: 'Other' },
 };
 const getCat = k => CAT[k] || CAT.OTHER;
 
@@ -275,14 +281,14 @@ function Dashboard({ onDisconnect }) {
   const [error,        setError]        = useState(null);
 
   useEffect(() => {
-    fetch('/api/plaid/transactions')
-      .then(r => r.json()).then(setTransactions)
-      .catch(() => setError('Failed to load transactions.'))
+    fetchTransactions()
+      .then(setTransactions)
+      .catch((e) => setError(e.message))
       .finally(() => setLoadingTx(false));
 
-    fetch('/api/plaid/balance')
-      .then(r => r.json()).then(d => setAccounts(d.accounts))
-      .catch(() => setError('Failed to load balances.'))
+    fetchBalances()
+      .then(d => setAccounts(d.accounts))
+      .catch((e) => setError(e.message))
       .finally(() => setLoadingBal(false));
   }, []);
 
@@ -374,25 +380,18 @@ export default function PlaidIntegration() {
   const [error,     setError]     = useState(null);
 
   useEffect(() => {
-    fetch('/api/plaid/create_link_token', { method: 'POST' })
-      .then(r => r.json())
+    createLinkToken()
       .then(d => setLinkToken(d.link_token))
-      .catch(() => setError('Could not fetch link token.'));
+      .catch(e => setError(e.message));
   }, []);
 
   const onSuccess = useCallback(async (public_token) => {
     try {
-      const r = await fetch('/api/plaid/set_access_token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ public_token }),
-      });
-      if (r.ok) setIsLinked(true);
-      else {
-        const e = await r.json();
-        setError(e.error?.display_message || 'Failed to set access token');
-      }
-    } catch { setError('Token exchange failed.'); }
+      await setAccessToken(public_token);
+      setIsLinked(true);
+    } catch (e) { 
+      setError(e.message || 'Token exchange failed.'); 
+    }
   }, []);
 
   const { open, ready } = usePlaidLink({ token: linkToken, onSuccess });

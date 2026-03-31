@@ -36,7 +36,7 @@ function Login() {
     <div style={{
       maxHeight: "100vh",
       width: "100%", maxWidth: "400px",
-      background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
+      background: "#0d1424",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
