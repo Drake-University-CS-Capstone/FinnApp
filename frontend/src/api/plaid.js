@@ -1,0 +1,37 @@
+export const createLinkToken = async () => {
+  const response = await fetch('/api/plaid/create_link_token', { method: 'POST' });
+  if (!response.ok) {
+    throw new Error('Could not fetch link token.');
+  }
+  return response.json();
+};
+
+export const setAccessToken = async (public_token) => {
+  const response = await fetch('/api/plaid/set_access_token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ public_token }),
+  });
+  
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error?.display_message || 'Failed to set access token');
+  }
+  return response.json();
+};
+
+export const fetchTransactions = async () => {
+  const response = await fetch('/api/plaid/transactions');
+  if (!response.ok) {
+    throw new Error('Failed to load transactions.');
+  }
+  return response.json();
+};
+
+export const fetchBalances = async () => {
+  const response = await fetch('/api/plaid/balance');
+  if (!response.ok) {
+    throw new Error('Failed to load balances.');
+  }
+  return response.json();
+};
