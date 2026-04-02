@@ -3,7 +3,7 @@ from bson import ObjectId
 from app.extensions import get_db, create_access_token
 from app.models.user import hash_password, build_user_doc, validate_password, check_password
 from app.middleware.auth_required import auth_required
-from app.models.plaid_items import get_all_plaid_items_by_user_id
+from app.models.plaid_items import get_all_plaid_items_by_user_id, get_plaid_item_by_id_and_user_id, get_plaid_item_by_id_mongo, get_plaid_item_by_user_and_institution, upsert_plaid_item
 
 
 #Blueprint
@@ -21,7 +21,7 @@ def get_all_plaid_items_by_user_id_route():
     else:
         return jsonify({"error": "No plaid items found for user ID: " + user_id}), 404
 
-#Route for getting a plaid item by ID + user ID
+#Route for getting a plaid item by ID + plaid item ID (temp ID)
 @plaid_items_bp.get("/all_Item_User")
 @auth_required
 def get_plaid_item_by_id_and_user_id_route():
@@ -33,3 +33,46 @@ def get_plaid_item_by_id_and_user_id_route():
         return jsonify(plaid_item), 200
     else:
         return jsonify({"error": "No plaid item found for user ID: " + user_id + " and plaid item ID: " + plaid_item_id}), 404
+
+##Reoute for getting a plaid item by _id (MongoDB ID)
+@plaid_items_bp.get("/all_Item_User_ID")
+@auth_required
+def get_plaid_item_by_id_and_user_id_route():
+    """Get a plaid item by ID and user ID."""
+    user_id = g.user_id
+    plaid_item_id = request.args.get("plaid_item_id")
+    plaid_item = get_plaid_item_by_id_mongo(user_id, plaid_item_id)
+    if plaid_item:
+        return jsonify(plaid_item), 200
+    else:
+        return jsonify({"error": "No plaid item found for user ID: " + user_id + " and plaid item ID: " + plaid_item_id}), 404
+
+#Route for getting a plaid item by user + institution
+@plaid_items_bp.get("/all_Item_User_Institution")
+@auth_required
+def get_plaid_item_by_user_and_institution_route():
+    """Get a plaid item by user and institution."""
+    user_id = g.user_id
+    institution_id = request.args.get("institution_id")
+    plaid_item = get_plaid_item_by_user_and_institution(user_id, institution_id)
+    if plaid_item:
+        return jsonify(plaid_item), 200
+    else:
+        return jsonify({"error": "No plaid item found for user ID: " + user_id + " and institution ID: " + institution_id}), 404
+
+#Route for updating a plaid item access token, item ID, and cursor
+@plaid_items_bp.put("/update_Item_User_Institution")
+@auth_required
+def update_plaid_item_by_user_and_institution_route():
+    """Update a plaid item access token, item ID, and cursor."""
+    user_id = g.user_id
+    institution_id = request.args.get("institution_id")
+    plaid_item_id = request.args.get("plaid_item_id")
+    access_token = request.args.get("access_token")
+    institution_name = request.args.get("institution_name")
+
+    plaid_item = upsert_plaid_item(user_id, institution_id, institution_name, plaid_item_id, access_token)
+    if plaid_item:
+        return jsonify(plaid_item), 200
+    else:
+        return jsonify({"error": "No plaid item found for user ID: " + user_id + " and institution ID: " + institution_id}), 404
