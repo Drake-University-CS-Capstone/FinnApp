@@ -13,5 +13,6 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(health_bp)
     app.register_blueprint(users_bp)
     app.register_blueprint(plaid_bp)
+
     # app.register_blueprint(external_bp)  # Uncomment when you want to use it
 

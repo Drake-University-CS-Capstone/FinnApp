@@ -35,3 +35,24 @@ export const fetchBalances = async () => {
   }
   return response.json();
 };
+
+/**
+ * Fetch the accounts from the Plaid API.
+ * @returns {Promise<any>}
+ * @throws {Error} If the accounts cannot be loaded.
+ */
+export const fetchAccounts = async () => {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    throw new Error('Not logged in.');
+  }
+  const response = await fetch('/api/plaid/accounts', {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!response.ok) {
+    throw new Error('Failed to load accounts.');
+  }
+  return response.json();
+};

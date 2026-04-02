@@ -4,7 +4,8 @@ import {
   createLinkToken, 
   setAccessToken, 
   fetchTransactions, 
-  fetchBalances 
+  fetchBalances,
+  fetchAccounts,
 } from '../api/plaid';
 
 // ── Fonts (matches navbar) ────────────────────────────────────────────────────
@@ -301,6 +302,12 @@ function Dashboard({ onReconnect }) {
   const [errors,       setErrors]       = useState([]);
 
   const addError = msg => setErrors(prev => prev.includes(msg) ? prev : [...prev, msg]);
+  useEffect(() => {
+    fetchAccounts()
+      .then(setAccounts)
+      .catch(e => addError(e.message || 'Failed to load accounts.'))
+      .finally(() => setLoadingAccounts(false));
+  }, []);
 
   useEffect(() => {
     fetchTransactions()
