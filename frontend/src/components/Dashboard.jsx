@@ -298,30 +298,28 @@ function Dashboard({ onReconnect }) {
   const [transactions, setTransactions] = useState(null);
   const [accounts,     setAccounts]     = useState(null);
   const [loadingTx,    setLoadingTx]    = useState(true);
-  const [loadingBal,   setLoadingBal]   = useState(true);
+  const [loadingAccounts, setLoadingAccounts] = useState(true); // ← was missing
   const [errors,       setErrors]       = useState([]);
 
   const addError = msg => setErrors(prev => prev.includes(msg) ? prev : [...prev, msg]);
+
+  // Accounts (auth-protected) — fixed: unwrap .accounts from response
   useEffect(() => {
     fetchAccounts()
-      .then(setAccounts)
+      .then(d => setAccounts(d.accounts))          // ← was: .then(setAccounts)
       .catch(e => addError(e.message || 'Failed to load accounts.'))
       .finally(() => setLoadingAccounts(false));
   }, []);
 
+  // Transactions only — removed fetchBalances (redundant with fetchAccounts)
   useEffect(() => {
     fetchTransactions()
       .then(setTransactions)
       .catch(e => addError(e.message || 'Failed to load transactions.'))
       .finally(() => setLoadingTx(false));
-
-    fetchBalances()
-      .then(d => setAccounts(d.accounts))
-      .catch(e => addError(e.message || 'Failed to load balances.'))
-      .finally(() => setLoadingBal(false));
   }, []);
 
-  const loading = loadingTx || loadingBal;
+  const loading = loadingTx || loadingAccounts;
 
   return (
     <div style={{ fontFamily: T.sans, color: T.text }}>
