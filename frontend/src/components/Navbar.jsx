@@ -28,8 +28,9 @@ export default function Navbar() {
 
   const pages = [
     { label: "Home", to: "/home" },
+    { label: "Stock Market", to: "/stock-market" },
     { label: "Reports", to: "/reports" },
-    { label: "Settings", to: "/settings" },
+    /*{ label: "Settings", to: "/settings" },*/
     { label: "Other", to: "/other"}
   ];
 

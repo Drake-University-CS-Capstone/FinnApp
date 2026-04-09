@@ -17,8 +17,8 @@ from plaid.model.accounts_balance_get_request import AccountsBalanceGetRequest
 from plaid.model.accounts_get_request import AccountsGetRequest
 from ..config import Config
 from app.middleware.auth_required import auth_required
-#from ..models.plaid_items import save_plaid_item, get_plaid_item_by_id, get_plaid_item_by_user_id, update_plaid_item_cursor as update_plaid_item_cursor_model
-from ..models.plaid_items import upsert_plaid_item, get_plaid_item_by_id_and_user_id, get_all_plaid_items_by_user_id
+from ..models.plaid_items import upsert_plaid_item, get_all_plaid_items_by_user_id, get_plaid_item_by_id_mongo
+
 
 # ---------------------------------------------------------------------------
 # Blueprint
