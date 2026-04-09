@@ -21,10 +21,11 @@ export const setAccessToken = async (public_token) => {
 };
 
 export const fetchTransactions = async () => {
-  const response = await fetch('/api/plaid/transactions');
-  if (!response.ok) {
-    throw new Error('Failed to load transactions.');
-  }
+  const token = localStorage.getItem('token');
+  const response = await fetch('/api/plaid/transactions', {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!response.ok) throw new Error('Failed to load transactions.');
   return response.json();
 };
 
