@@ -2,7 +2,7 @@ import os
 import time
 import json
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, g
 from dotenv import load_dotenv
 
 import plaid
@@ -14,8 +14,11 @@ from plaid.model.link_token_create_request_user import LinkTokenCreateRequestUse
 from plaid.model.item_public_token_exchange_request import ItemPublicTokenExchangeRequest
 from plaid.model.transactions_sync_request import TransactionsSyncRequest
 from plaid.model.accounts_balance_get_request import AccountsBalanceGetRequest
-
+from plaid.model.accounts_get_request import AccountsGetRequest
 from ..config import Config
+from app.middleware.auth_required import auth_required
+from ..models.plaid_items import save_plaid_item, get_plaid_item_by_id, get_plaid_item_by_user_id, update_plaid_item_cursor as update_plaid_item_cursor_model
+
 
 # ---------------------------------------------------------------------------
 # Blueprint
@@ -74,6 +77,23 @@ def _format_error(e: plaid.ApiException) -> dict:
     }
 
 
+def _clean_account(a: dict) -> dict:
+    bal = a.get("balances", {})
+    return {
+        "account_id": a.get("account_id"),
+        "name": a.get("name"),
+        "official_name": a.get("official_name"),
+        "type": str(a.get("type", "")),
+        "subtype": str(a.get("subtype", "")),
+        "balances": {
+            "available": bal.get("available"),
+            "current": bal.get("current"),
+            "limit": bal.get("limit"),
+            "iso_currency_code": bal.get("iso_currency_code", "USD"),
+        },
+    }
+
+
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
@@ -98,6 +118,7 @@ def create_link_token():
             link_request["redirect_uri"] = PLAID_REDIRECT_URI
 
         response = client.link_token_create(link_request)
+        #print("Link token response:", response)
         return jsonify({"link_token": response["link_token"]})
     except plaid.ApiException as e:
         return jsonify(_format_error(e)), e.status
@@ -116,6 +137,7 @@ def set_access_token():
     try:
         exchange_request = ItemPublicTokenExchangeRequest(public_token=public_token)
         exchange_response = client.item_public_token_exchange(exchange_request)
+        #print("Access token response:", exchange_response)
         _store["access_token"] = exchange_response["access_token"]
         _store["item_id"] = exchange_response["item_id"]
         return jsonify({"ok": True, "item_id": _store["item_id"]})
@@ -150,6 +172,11 @@ def get_transactions():
                 cursor=cursor,
             )
             response = client.transactions_sync(sync_request).to_dict()
+            #print("--------------------------------")
+            #print("Type of response:", type(response))
+            #print("Transactions sync response:")
+            
+            #print(json.dumps(response, indent=2, default=str))
             cursor = response["next_cursor"]
             if cursor == "":
                 time.sleep(2)
@@ -227,22 +254,7 @@ def get_balance():
     try:
         balance_request = AccountsBalanceGetRequest(access_token=access_token)
         response = client.accounts_balance_get(balance_request).to_dict()
-
-        def _clean_account(a: dict) -> dict:
-            bal = a.get("balances", {})
-            return {
-                "account_id": a.get("account_id"),
-                "name": a.get("name"),
-                "official_name": a.get("official_name"),
-                "type": str(a.get("type", "")),
-                "subtype": str(a.get("subtype", "")),
-                "balances": {
-                    "available": bal.get("available"),
-                    "current": bal.get("current"),
-                    "limit": bal.get("limit"),
-                    "iso_currency_code": bal.get("iso_currency_code", "USD"),
-                },
-            }
+        #print("Balance response:", json.dumps(response, indent=2))
 
         return jsonify({
             "accounts": [_clean_account(a) for a in response.get("accounts", [])]
@@ -262,3 +274,43 @@ def status():
         "linked": _store["access_token"] is not None,
         "item_id": _store["item_id"],
     })
+@plaid_bp.get("/accounts")
+@auth_required
+def get_accounts():
+    """
+    Returns the list of accounts linked to the item.
+    Requires Authorization: Bearer <JWT>; user id comes from token (sub), not a custom header.
+    """
+    access_token = _store.get("access_token")
+    user_id = g.user_id
+    if not access_token:
+        return jsonify({"error": "No account linked. Complete Plaid Link first."}), 400
+    try:
+        accounts_request = AccountsGetRequest(access_token=access_token)#Get the accounts from the Plaid API
+        response = client.accounts_get(accounts_request).to_dict()#Get the response from the Plaid API
+        
+        """
+        Skip this for now since we need to update our backend to use the new schemas and FKs. We still want this plaid api call to save the plaid item to the database.
+        plaid_item = None
+        print(f"Response: {response}")
+        #Get the plaid item from the database
+        try:
+            #plaid_item = get_plaid_item_by_id(user_id, response['item']["item_id"])#Get the plaid item from the database
+            print(f"Plaid item: {plaid_item}")
+        except Exception as e:
+            print(f"Error getting plaid item: {e}")
+
+        #If the plaid item is not found, save it to the database
+        if not plaid_item: 
+            try:
+                save_plaid_item(response, user_id, access_token)#Save the plaid item to the database
+                print(f"Plaid item saved: {plaid_item}")
+            except Exception as e:
+                print(f"Error saving plaid item: {e}")
+        """
+        #Return the accounts
+        return jsonify({
+            "accounts": [_clean_account(a) for a in response.get("accounts", [])]
+        })
+    except plaid.ApiException as e:
+        return jsonify(_format_error(e)), e.status
