@@ -6,6 +6,7 @@ import {
   fetchTransactions, 
   fetchBalances,
   fetchAccounts,
+  fetchPlaidItems,
 } from '../api/plaid';
 
 // ── Fonts (matches navbar) ────────────────────────────────────────────────────
@@ -293,41 +294,123 @@ function ErrorBanner({ message, onReconnect }) {
   );
 }
 
-// ── Dashboard ─────────────────────────────────────────────────────────────────
+// ── Dashbaord ────────────────────────────────────────────────────────────────────
 function Dashboard({ onReconnect }) {
-  const [transactions, setTransactions] = useState(null);
-  const [accounts,     setAccounts]     = useState(null);
-  const [loadingTx,    setLoadingTx]    = useState(true);
-  const [loadingAccounts, setLoadingAccounts] = useState(true); // ← was missing
-  const [errors,       setErrors]       = useState([]);
+  const [transactions,    setTransactions]    = useState(null);
+  const [accounts,        setAccounts]        = useState(null);
+  const [plaidItems,      setPlaidItems]      = useState([]);
+  const [selectedItem,    setSelectedItem]    = useState(null);
+  const [loadingTx,       setLoadingTx]       = useState(true);
+  const [loadingAccounts, setLoadingAccounts] = useState(true);
+  const [errors,          setErrors]          = useState([]);
 
   const addError = msg => setErrors(prev => prev.includes(msg) ? prev : [...prev, msg]);
 
-  // Accounts (auth-protected) — fixed: unwrap .accounts from response
+  // Load plaid items for the dropdown, fall back to direct account fetch
   useEffect(() => {
-    fetchAccounts()
-      .then(d => setAccounts(d.accounts))          // ← was: .then(setAccounts)
-      .catch(e => addError(e.message || 'Failed to load accounts.'))
-      .finally(() => setLoadingAccounts(false));
-  }, []);
+  fetchPlaidItems()
+    .then(items => {
+      if (items.length > 0) {
+        setPlaidItems(items);
+        setSelectedItem(items[0]); // triggers second useEffect to load data
+      } else {
+        // No linked bank → show modal, clear loading so no spinner
+        setLoadingAccounts(false);
+        setLoadingTx(false);
+        onReconnect();
+      }
+    })
+    .catch(() => {
+      // fetchPlaidItems failed — try loading data directly as fallback
+      loadData(null);
+    });
+}, []);
 
-  // Transactions only — removed fetchBalances (redundant with fetchAccounts)
-  useEffect(() => {
-    fetchTransactions()
+  const loadData = (itemId) => {
+    setLoadingAccounts(true);
+    setLoadingTx(true);
+
+    fetchAccounts(itemId)
+      .then(d => {
+        const accts = d.accounts ?? [];
+        if (accts.length > 0) {
+          setAccounts(accts);
+        } else {
+          onReconnect(); // truly no data → show modal
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoadingAccounts(false));
+
+    fetchTransactions(itemId)
       .then(setTransactions)
       .catch(e => addError(e.message || 'Failed to load transactions.'))
       .finally(() => setLoadingTx(false));
-  }, []);
+  };
+
+  // Reload when selected item changes from dropdown
+  useEffect(() => {
+    if (!selectedItem) return;
+    loadData(selectedItem.plaidItemId);
+  }, [selectedItem]);
 
   const loading = loadingTx || loadingAccounts;
 
   return (
     <div style={{ fontFamily: T.sans, color: T.text }}>
       <link rel="stylesheet" href={FONT_LINK} />
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-        <h2 style={{ margin: 0, fontFamily: T.display, fontSize: '1.6rem', color: T.text, letterSpacing: '-0.01em' }}>
-          My Finances
-        </h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <h2 style={{ margin: 0, fontFamily: T.display, fontSize: '1.6rem', color: T.text, letterSpacing: '-0.01em' }}>
+            My Finances
+          </h2>
+          {plaidItems.length > 1 && (
+            <select
+              value={selectedItem?.plaidItemId || ''}
+              onChange={e => {
+                const item = plaidItems.find(i => i.plaidItemId === e.target.value);
+                setSelectedItem(item);
+              }}
+              style={{
+                background: T.accentBg,
+                border: `1px solid ${T.accentBord}`,
+                color: T.accent,
+                borderRadius: '8px',
+                padding: '0.4rem 0.8rem',
+                fontSize: '0.78rem',
+                fontFamily: T.sans,
+                cursor: 'pointer',
+                outline: 'none',
+              }}
+            >
+              {plaidItems.map(item => (
+                <option key={item.plaidItemId} value={item.plaidItemId}>
+                  {item.institutionName || item.plaidItemId}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+        <button
+          onClick={onReconnect}
+          style={{
+            padding: '0.4rem 1rem',
+            background: T.accentBg,
+            border: `1px solid ${T.accentBord}`,
+            color: T.accent,
+            borderRadius: '8px',
+            fontSize: '0.78rem',
+            fontWeight: 500,
+            fontFamily: T.sans,
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.3)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.7)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = T.accentBg; e.currentTarget.style.borderColor = T.accentBord; }}
+        >
+          + Connect bank
+        </button>
       </div>
 
       {errors.length > 0 && (
@@ -463,9 +546,11 @@ function PlaidLinkModal({ onLink, onSkip, ready, linkToken, error }) {
 // ── Root ──────────────────────────────────────────────────────────────────────
 export default function PlaidIntegration() {
   const [linkToken, setLinkToken] = useState(null);
-  const [isLinked,  setIsLinked]  = useState(false);
-  const [showModal, setShowModal] = useState(() => localStorage.getItem('plaid_linked') !== 'true');
+  const [showModal, setShowModal] = useState(false);
   const [error,     setError]     = useState(null);
+
+  // Get the token so we can use it as a key to force reset on user change
+  const authToken = localStorage.getItem('token');
 
   useEffect(() => {
     createLinkToken()
@@ -476,6 +561,7 @@ export default function PlaidIntegration() {
   const onSuccess = useCallback(async (public_token) => {
     try {
       await setAccessToken(public_token);
+      localStorage.setItem('plaid_linked', 'true');
       window.location.reload();
     } catch (e) {
       setError(e.message || 'Token exchange failed.');
@@ -484,13 +570,16 @@ export default function PlaidIntegration() {
 
   const { open, ready } = usePlaidLink({ token: linkToken, onSuccess });
 
+  const handleReconnect = () => {
+    localStorage.removeItem('plaid_linked');
+    setShowModal(true);
+  };
+
   return (
     <>
-      {/* Dashboard always renders underneath */}
-      <Dashboard onReconnect={() => setShowModal(true)} />
-
-      {/* Modal overlays on top when not yet linked */}
-      {showModal && !isLinked && (
+      {/* key={authToken} forces Dashboard to fully remount when user changes */}
+      <Dashboard key={authToken} onReconnect={handleReconnect} />
+      {showModal && (
         <PlaidLinkModal
           onLink={() => open()}
           onSkip={() => setShowModal(false)}
