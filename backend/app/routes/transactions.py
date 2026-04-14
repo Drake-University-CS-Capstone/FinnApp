@@ -123,7 +123,10 @@ def get_transactions_by_date_range_route():
         return jsonify({"error": "Invalid date format. Use ISO format (e.g. 2026-04-01)"}), 400
 
     limit, skip = _get_pagination()
-    transactions = get_transactions_by_date_range(g.user_id, start_date, end_date, limit=limit, skip=skip)
+    connection_id = request.args.get("connection_id")
+    transactions = get_transactions_by_date_range(
+        g.user_id, start_date, end_date, limit=limit, skip=skip, connection_id=connection_id
+    )
     return jsonify({"transactions": [_serialize(t) for t in transactions]}), 200
 
 

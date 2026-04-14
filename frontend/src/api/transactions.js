@@ -109,18 +109,21 @@ export const fetchTransactionsByConnection = async (connectionId, opts) => {
 };
 
 /**
- * @param {{ startDate: string, endDate: string, limit?: number, skip?: number }} range
+ * @param {{ startDate: string, endDate: string, connectionId?: string, limit?: number, skip?: number }} range
  * @returns {Promise<{ transactions: any[] }>}
  */
 export const fetchTransactionsByDateRange = async (range) => {
-  const response = await fetch(
-    buildUrl("/by_date_range", {
-      start_date: range.startDate,
-      end_date: range.endDate,
-      ...paginationParams({ limit: range.limit, skip: range.skip }),
-    }),
-    { headers: getAuthHeaders() }
-  );
+  const params = {
+    start_date: range.startDate,
+    end_date: range.endDate,
+    ...paginationParams({ limit: range.limit, skip: range.skip }),
+  };
+  if (range.connectionId) {
+    params.connection_id = range.connectionId;
+  }
+  const response = await fetch(buildUrl("/by_date_range", params), {
+    headers: getAuthHeaders(),
+  });
   return handleJson(response);
 };
 

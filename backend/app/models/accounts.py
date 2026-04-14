@@ -1,3 +1,5 @@
+import re
+import unicodedata
 from datetime import datetime, timezone
 from app.extensions import get_db
 from bson import ObjectId
@@ -198,3 +200,76 @@ def deactivate_accounts_by_connection(connection_id):
     except Exception as e:
         print(f"Error deactivating accounts by connection: {e}")
         return 0
+
+
+def _fingerprint_account(mask, subtype, name):
+    """Stable fingerprint string for matching existing DB account <-> incoming Plaid account."""
+    norm = unicodedata.normalize("NFKD", name or "").encode("ascii", "ignore").decode("ascii")
+    norm = re.sub(r"[^a-z0-9]", "", norm.lower())
+    return (str(mask or ""), str(subtype or ""), norm)
+
+
+def remap_accounts_in_place(connection_id, new_plaid_accounts):
+    """
+    Remap existing Accounts for connection_id to new Plaid account_id values by
+    fingerprint matching (mask + subtype + normalized name). No rows are created
+    or deleted. Keeps all Mongo _id values stable.
+
+    Returns {"remapped": int, "unmatched_db": [str...], "unmatched_plaid": [str...]}.
+    Raises ValueError if any fingerprint is ambiguous (duplicate within DB or Plaid list).
+    """
+    collection = get_db()["Accounts"]
+
+    existing = list(collection.find({"connectionId": ObjectId(connection_id)}))
+
+    db_by_fp = {}
+    for acct in existing:
+        fp = _fingerprint_account(acct.get("mask"), acct.get("subtype"), acct.get("name"))
+        if fp in db_by_fp:
+            raise ValueError(f"Ambiguous account fingerprint in DB: {fp}")
+        db_by_fp[fp] = acct
+
+    plaid_by_fp = {}
+    for acct in new_plaid_accounts:
+        fp = _fingerprint_account(acct.get("mask"), acct.get("subtype"), acct.get("name"))
+        if fp in plaid_by_fp:
+            raise ValueError(f"Ambiguous account fingerprint from Plaid: {fp}")
+        plaid_by_fp[fp] = acct
+
+    remapped = 0
+    unmatched_db = []
+    matched_plaid_fps = set()
+    now = utc_now()
+
+    for fp, db_acct in db_by_fp.items():
+        plaid_acct = plaid_by_fp.get(fp)
+        if not plaid_acct:
+            unmatched_db.append(str(db_acct["_id"]))
+            continue
+        collection.update_one(
+            {"_id": db_acct["_id"]},
+            {"$set": {
+                "plaidAccountId": plaid_acct.get("plaidAccountId"),
+                "name": plaid_acct.get("name"),
+                "officialName": plaid_acct.get("officialName"),
+                "availableBalance": plaid_acct.get("availableBalance"),
+                "currentBalance": plaid_acct.get("currentBalance"),
+                "isoCurrencyCode": plaid_acct.get("isoCurrencyCode"),
+                "limit": plaid_acct.get("limit"),
+                "updatedAt": now,
+            }}
+        )
+        matched_plaid_fps.add(fp)
+        remapped += 1
+
+    unmatched_plaid = [
+        str(acct.get("plaidAccountId"))
+        for fp, acct in plaid_by_fp.items()
+        if fp not in matched_plaid_fps
+    ]
+
+    return {
+        "remapped": remapped,
+        "unmatched_db": unmatched_db,
+        "unmatched_plaid": unmatched_plaid,
+    }
