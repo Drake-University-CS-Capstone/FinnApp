@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { logout } from "../api/auth";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
+  const location = useLocation();
   const [hasToken, setHasToken] = useState(() => Boolean(localStorage.getItem("token")));
 
   useEffect(() => {
@@ -25,6 +26,11 @@ export default function Navbar() {
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
   }, []);
+
+  // Keep auth state in sync in the current tab after route changes
+  useEffect(() => {
+    setHasToken(Boolean(localStorage.getItem("token")));
+  }, [location.pathname]);
 
   const pages = [
     { label: "Home", to: "/home" },
@@ -89,7 +95,7 @@ export default function Navbar() {
             Financial Capstone
           </div>
 
-          {/* Right — login */}
+          {/* Right — auth action */}
           <div style={{ justifySelf: "end" }}>
             {hasToken ? (
               <button
@@ -104,7 +110,12 @@ export default function Navbar() {
                 Sign out
               </button>
             ) : (
-              <Link to="/login" className="login-btn">Login</Link>
+              <Link
+                to={location.pathname === "/login" ? "/signup" : "/login"}
+                className="login-btn"
+              >
+                {location.pathname === "/login" ? "Sign up" : "Login"}
+              </Link>
             )}
           </div>
 

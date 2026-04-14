@@ -24,19 +24,16 @@ def _serialize(doc):
 @plaid_items_bp.get("/all_ID")
 @auth_required
 def get_all_plaid_items_by_user_id_route():
-    """Get all plaid items by user ID."""
+    """Get all plaid items by user ID. Empty list with 200 when none (valid for first-time users)."""
     user_id = g.user_id
     plaid_items = get_all_plaid_items_by_user_id(user_id)
-    if plaid_items:
-        return jsonify([_serialize(item) for item in plaid_items]), 200
-    else:
-        return jsonify({"error": "No plaid items found for user ID: " + user_id}), 404
+    return jsonify([_serialize(item) for item in plaid_items]), 200
 
 #Route for getting a plaid item by ID + plaid item ID (temp ID)
 @plaid_items_bp.get("/all_Item_User")
 @auth_required
-def get_plaid_item_by_id_and_user_id_route():
-    """Get a plaid item by ID and user ID."""
+def get_plaid_item_by_plaid_string_id_route():
+    """Get a plaid item by Plaid string item id and user."""
     user_id = g.user_id
     plaid_item_id = request.args.get("plaid_item_id")
     plaid_item = get_plaid_item_by_id_and_user_id(user_id, plaid_item_id)
@@ -48,15 +45,15 @@ def get_plaid_item_by_id_and_user_id_route():
 ##Reoute for getting a plaid item by _id (MongoDB ID)
 @plaid_items_bp.get("/all_Item_User_ID")
 @auth_required
-def get_plaid_item_by_id_and_user_id_route():
-    """Get a plaid item by ID and user ID."""
+def get_plaid_item_by_mongo_id_route():
+    """Get a plaid item by MongoDB _id (query param plaid_item_id)."""
     user_id = g.user_id
     plaid_item_id = request.args.get("plaid_item_id")
-    plaid_item = get_plaid_item_by_id_mongo(user_id, plaid_item_id)
-    if plaid_item:
+    plaid_item = get_plaid_item_by_id_mongo(plaid_item_id)
+    if plaid_item and str(plaid_item.get("userId")) == user_id:
         return jsonify(_serialize(plaid_item)), 200
     else:
-        return jsonify({"error": "No plaid item found for user ID: " + user_id + " and plaid item ID: " + plaid_item_id}), 404
+        return jsonify({"error": "No plaid item found for user ID: " + user_id + " and plaid item ID: " + str(plaid_item_id)}), 404
 
 #Route for getting a plaid item by user + institution
 @plaid_items_bp.get("/all_Item_User_Institution")
