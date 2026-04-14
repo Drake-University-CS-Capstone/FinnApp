@@ -3,8 +3,8 @@ import StockComponent from "../components/StockComponent";
 function StockMarket() {
   return (
     <div style={{
-      minHeight: "100vh",
-      padding: "2.5rem",
+      height: "100vh",
+      width: "100vw",
     }}>
       <StockComponent />
     </div>

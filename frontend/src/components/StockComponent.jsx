@@ -31,7 +31,7 @@ function StockComponent() {
       const chartData = Object.keys(timeSeries).map(date => ({
         date,
         close: parseFloat(timeSeries[date]['4. close'])
-      })).reverse(); // Reverse to show chronological order
+      })).sort((a, b) => new Date(a.date) - new Date(b.date)); // Sort oldest to newest
       setData(chartData);
     } catch (err) {
       setError(err.message);
@@ -51,43 +51,51 @@ function StockComponent() {
 
   return (
     <div style={{
-      padding: "2rem",
+      height: '100%',
+      width: '100%',
       backgroundColor: '#0e2d76',
-      borderRadius: '15px',
-      boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
-      margin: '1rem'
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      padding: '1rem'
     }}>
-      <h1>Stock Market</h1>
-      <form onSubmit={handleSubmit} style={{ marginBottom: '2rem' }}>
-        <label>
+      <h1 style={{ color: 'white', marginBottom: '1rem' }}>Stock Market</h1>
+      <form onSubmit={handleSubmit} style={{ marginBottom: '2rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+        <label style={{ color: 'white' }}>
           Symbol:
-          <select value={symbol} onChange={(e) => setSymbol(e.target.value)}>
+          <select value={symbol} onChange={(e) => setSymbol(e.target.value)} style={{ marginLeft: '0.5rem' }}>
             {symbols.map(sym => <option key={sym} value={sym}>{sym}</option>)}
           </select>
         </label>
-        <label style={{ marginLeft: '1rem' }}>
+        <label style={{ color: 'white' }}>
           Function:
-          <select value={functionType} onChange={(e) => setFunctionType(e.target.value)}>
+          <select value={functionType} onChange={(e) => setFunctionType(e.target.value)} style={{ marginLeft: '0.5rem' }}>
             <option value="TIME_SERIES_DAILY">Daily</option>
             <option value="TIME_SERIES_WEEKLY">Weekly</option>
             <option value="TIME_SERIES_MONTHLY">Monthly</option>
           </select>
         </label>
-        <button type="submit" style={{ marginLeft: '1rem' }}>Fetch Data</button>
+        <button type="submit">Fetch Data</button>
       </form>
-      {loading && <p>Loading...</p>}
-      {error && <p>Error: {error}</p>}
+      {loading && <p style={{ color: 'white' }}>Loading...</p>}
+      {error && <p style={{ color: 'red' }}>Error: {error}</p>}
       {data.length > 0 && (
-        <ResponsiveContainer width="100%" height={400} key={data.length}>
-          <LineChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="date" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Line type="monotone" dataKey="close" stroke="#8884d8" />
-          </LineChart>
-        </ResponsiveContainer>
+        <div style={{ width: '100%', height: '70%', border: '2px solid white', borderRadius: '10px', padding: '10px', backgroundColor: 'white' }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={data}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis 
+                dataKey="date" 
+                tickFormatter={(tick) => new Date(tick).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} 
+                interval={Math.max(1, Math.floor(data.length / 10))} 
+              />
+              <YAxis tickCount={5} label={{ value: 'Price (USD)', angle: -90, position: 'insideLeft' }} />
+              <Tooltip />
+              <Legend />
+              <Line type="monotone" dataKey="close" stroke="#8884d8" dot={false} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
       )}
     </div>
   );
