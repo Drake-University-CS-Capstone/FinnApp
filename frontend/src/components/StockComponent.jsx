@@ -50,7 +50,13 @@ function StockComponent() {
   };
 
   return (
-    <div style={{ padding: "2rem" }}>
+    <div style={{
+      padding: "2rem",
+      backgroundColor: '#0e2d76',
+      borderRadius: '15px',
+      boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
+      margin: '1rem'
+    }}>
       <h1>Stock Market</h1>
       <form onSubmit={handleSubmit} style={{ marginBottom: '2rem' }}>
         <label>
@@ -72,7 +78,7 @@ function StockComponent() {
       {loading && <p>Loading...</p>}
       {error && <p>Error: {error}</p>}
       {data.length > 0 && (
-        <ResponsiveContainer width="100%" height={400}>
+        <ResponsiveContainer width="100%" height={400} key={data.length}>
           <LineChart data={data}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="date" />
