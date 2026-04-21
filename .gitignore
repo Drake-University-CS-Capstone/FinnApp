@@ -81,3 +81,4 @@ htmlcov/
 *.sqlite3
 *.db
 
+capstone.pem*
