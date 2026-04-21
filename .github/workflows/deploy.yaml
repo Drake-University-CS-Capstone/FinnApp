@@ -1,0 +1,54 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches:
+      - PlaidAPI
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check secrets exist
+        shell: bash
+        run: |
+          [ -n "${{ secrets.EC2_PRIVATE_KEY }}" ] || (echo "EC2_PRIVATE_KEY is missing" && exit 1)
+          [ -n "${{ secrets.EC2_HOST }}" ] || (echo "EC2_HOST is missing" && exit 1)
+          [ -n "${{ secrets.EC2_USER }}" ] || (echo "EC2_USER is missing" && exit 1)
+      - name: Set up SSH key
+        shell: bash
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.EC2_PRIVATE_KEY }}" | tr -d '\r' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts
+      - name: Verify SSH key parses
+        shell: bash
+        run: |
+          ssh-keygen -y -f ~/.ssh/deploy_key > /dev/null
+          echo "SSH key parsed successfully"
+      - name: Test SSH connection
+        shell: bash
+        run: |
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/deploy_key "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" "whoami"
+      - name: Deploy via SSH
+        shell: bash
+        run: |
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/deploy_key "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" << 'EOF'
+            set -e
+            cd /home/ec2-user/FinnApp
+            git fetch origin
+            git reset --hard
+            git clean -fd -e backend/backend.env
+            git checkout -B PlaidAPI origin/PlaidAPI
+            git reset --hard origin/PlaidAPI
+            cd /home/ec2-user/FinnApp/backend
+            /home/ec2-user/FinnApp/backend/.venv/bin/pip install -r requirements.txt
+            sudo systemctl restart finn-backend
+            cd /home/ec2-user/FinnApp/frontend
+            npm install
+            npm run build
+            sudo systemctl restart finn-frontend
+            sudo systemctl restart nginx
+          EOF
