@@ -1,51 +1,59 @@
-from flask import Blueprint, request, jsonify, current_app, g
+from flask import Blueprint, request, jsonify, g
 from bson import ObjectId
-from app.extensions import get_db, create_access_token
-from app.models.user import hash_password, build_user_doc, validate_password, check_password
 from app.middleware.auth_required import auth_required
 from app.models.plaid_items import get_all_plaid_items_by_user_id, get_plaid_item_by_id_and_user_id, get_plaid_item_by_id_mongo, get_plaid_item_by_user_and_institution, upsert_plaid_item
 
 
-#Blueprint
 plaid_items_bp = Blueprint("plaid_items", __name__, url_prefix="/api/plaid_items")
+
+
+def _serialize(doc):
+    """Convert ObjectId and datetime fields so jsonify can handle them."""
+    if doc is None:
+        return None
+    doc = dict(doc)
+    for key in ("_id", "userId"):
+        if key in doc and isinstance(doc[key], ObjectId):
+            doc[key] = str(doc[key])
+    for key in ("createdAt", "updatedAt"):
+        if key in doc and doc[key] is not None:
+            doc[key] = doc[key].isoformat()
+    return doc
 
 #Route for getting all plaid items by user ID
 @plaid_items_bp.get("/all_ID")
 @auth_required
 def get_all_plaid_items_by_user_id_route():
-    """Get all plaid items by user ID."""
+    """Get all plaid items by user ID. Empty list with 200 when none (valid for first-time users)."""
     user_id = g.user_id
     plaid_items = get_all_plaid_items_by_user_id(user_id)
-    if plaid_items:
-        return jsonify(plaid_items), 200
-    else:
-        return jsonify({"error": "No plaid items found for user ID: " + user_id}), 404
+    return jsonify([_serialize(item) for item in plaid_items]), 200
 
 #Route for getting a plaid item by ID + plaid item ID (temp ID)
 @plaid_items_bp.get("/all_Item_User")
 @auth_required
-def get_plaid_item_by_id_and_user_id_route():
-    """Get a plaid item by ID and user ID."""
+def get_plaid_item_by_plaid_string_id_route():
+    """Get a plaid item by Plaid string item id and user."""
     user_id = g.user_id
     plaid_item_id = request.args.get("plaid_item_id")
     plaid_item = get_plaid_item_by_id_and_user_id(user_id, plaid_item_id)
     if plaid_item:
-        return jsonify(plaid_item), 200
+        return jsonify(_serialize(plaid_item)), 200
     else:
         return jsonify({"error": "No plaid item found for user ID: " + user_id + " and plaid item ID: " + plaid_item_id}), 404
 
 ##Reoute for getting a plaid item by _id (MongoDB ID)
 @plaid_items_bp.get("/all_Item_User_ID")
 @auth_required
-def get_plaid_item_by_id_and_user_id_route():
-    """Get a plaid item by ID and user ID."""
+def get_plaid_item_by_mongo_id_route():
+    """Get a plaid item by MongoDB _id (query param plaid_item_id)."""
     user_id = g.user_id
     plaid_item_id = request.args.get("plaid_item_id")
-    plaid_item = get_plaid_item_by_id_mongo(user_id, plaid_item_id)
-    if plaid_item:
-        return jsonify(plaid_item), 200
+    plaid_item = get_plaid_item_by_id_mongo(plaid_item_id)
+    if plaid_item and str(plaid_item.get("userId")) == user_id:
+        return jsonify(_serialize(plaid_item)), 200
     else:
-        return jsonify({"error": "No plaid item found for user ID: " + user_id + " and plaid item ID: " + plaid_item_id}), 404
+        return jsonify({"error": "No plaid item found for user ID: " + user_id + " and plaid item ID: " + str(plaid_item_id)}), 404
 
 #Route for getting a plaid item by user + institution
 @plaid_items_bp.get("/all_Item_User_Institution")
@@ -56,7 +64,7 @@ def get_plaid_item_by_user_and_institution_route():
     institution_id = request.args.get("institution_id")
     plaid_item = get_plaid_item_by_user_and_institution(user_id, institution_id)
     if plaid_item:
-        return jsonify(plaid_item), 200
+        return jsonify(_serialize(plaid_item)), 200
     else:
         return jsonify({"error": "No plaid item found for user ID: " + user_id + " and institution ID: " + institution_id}), 404
 
@@ -73,6 +81,6 @@ def update_plaid_item_by_user_and_institution_route():
 
     plaid_item = upsert_plaid_item(user_id, institution_id, institution_name, plaid_item_id, access_token)
     if plaid_item:
-        return jsonify(plaid_item), 200
+        return jsonify(_serialize(plaid_item)), 200
     else:
         return jsonify({"error": "No plaid item found for user ID: " + user_id + " and institution ID: " + institution_id}), 404

@@ -4,7 +4,7 @@ function Home() {
   return (
     <div style={{
       minHeight: "100vh",
-      background: Text.background,
+      background: '#0d1424',
       padding: "2.5rem",
     }}>
       <PlaidIntegration />
