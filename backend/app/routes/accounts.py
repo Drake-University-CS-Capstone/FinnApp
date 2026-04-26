@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify, g
 from bson import ObjectId
 from app.middleware.auth_required import auth_required
+from app.finance import AccountClass, classify_account, group_accounts
 from app.models.accounts import (
     get_all_accounts_by_user_id,
     get_accounts_by_connection_id,
@@ -15,7 +16,11 @@ accounts_bp = Blueprint("accounts", __name__, url_prefix="/api/accounts")
 
 
 def _serialize(doc):
-    """Convert ObjectId and datetime fields so jsonify can handle them."""
+    """Convert ObjectId and datetime fields so jsonify can handle them.
+
+    Also attaches a canonical `account_class` so every consumer of this route
+    agrees on whether an account is cash / debt / investment / other.
+    """
     if doc is None:
         return None
     doc = dict(doc)
@@ -25,6 +30,8 @@ def _serialize(doc):
     for key in ("createdAt", "updatedAt"):
         if key in doc and doc[key] is not None:
             doc[key] = doc[key].isoformat()
+    # Tag with canonical account class for the UI (cash/debt/investment/other).
+    doc["account_class"] = classify_account(doc)
     return doc
 
 
@@ -37,6 +44,32 @@ def get_all_accounts_route():
     if accounts:
         return jsonify({"accounts": [_serialize(a) for a in accounts]}), 200
     return jsonify({"error": "No accounts found for this user"}), 404
+
+
+@accounts_bp.get("/grouped")
+@auth_required
+def get_grouped_accounts_route():
+    """Return all accounts for the user pre-bucketed into cash/debt/investment/other.
+
+    Each bucket entry retains the full serialized account doc (with
+    `account_class` attached).  Empty buckets are still returned so the UI
+    doesn't have to check for missing keys.
+    """
+    user_id = g.user_id
+    accounts = get_all_accounts_by_user_id(user_id)
+    serialized = [_serialize(a) for a in (accounts or [])]
+    buckets = group_accounts(serialized)
+    return jsonify({
+        "groups": {
+            AccountClass.CASH: buckets[AccountClass.CASH],
+            AccountClass.DEBT: buckets[AccountClass.DEBT],
+            AccountClass.INVESTMENT: buckets[AccountClass.INVESTMENT],
+            AccountClass.OTHER: buckets[AccountClass.OTHER],
+        },
+        "counts": {
+            k: len(v) for k, v in buckets.items()
+        },
+    }), 200
 
 
 @accounts_bp.get("/by_connection")

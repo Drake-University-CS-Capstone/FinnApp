@@ -44,7 +44,7 @@ export default function Navbar() {
     <nav style={{
       position: "fixed", top: 0, width: "100%", zIndex: 50,
       background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
-      borderBottom: "1px solid rgba(99,102,241,0.25)",
+      borderBottom: "none",
       fontFamily: "'DM Sans', sans-serif",
     }}>
       <style>{`

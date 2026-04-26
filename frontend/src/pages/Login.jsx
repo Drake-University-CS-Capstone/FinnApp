@@ -34,7 +34,7 @@ function Login() {
 
   return (
     <div style={{
-      maxHeight: "100vh",
+      minHeight: "100%",
       width: "100%", maxWidth: "400px",
       background: "#0d1424",
       display: "flex",
