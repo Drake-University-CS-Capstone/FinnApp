@@ -1,10 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { usePlaidLink } from 'react-plaid-link';
-import { createLinkToken, connectBank, syncTransactions, createReconnectLinkToken, reconnectBank } from '../api/plaid';
-import { fetchPlaidItems } from '../api/plaidItems';
-import { fetchAccounts, fetchAccountsByConnection } from '../api/accounts';
-import { fetchTransactionsByDateRange } from '../api/transactions';
 import BankSelection from './BankSelection';
+import { useFinanceSession } from '../finance/FinanceSessionContext';
+import { ACCOUNT_CLASS, classifyAccount, groupAccounts } from '../finance/accountClass';
 
 // ── Fonts (matches navbar) ────────────────────────────────────────────────────
 const FONT_LINK = 'https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Playfair+Display:wght@700&display=swap';
@@ -55,64 +54,109 @@ const fmtDate = s => {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
-// ── Data shape helpers ────────────────────────────────────────────────────────
+// Per-account row.  Visual tone is driven by the canonical account_class so
+// cash / debt / investment all get consistent styling no matter which Plaid
+// subtype landed under them.
+function AccountRow({ acct }) {
+  const klass = acct.account_class || classifyAccount(acct);
+  const isDebt = klass === ACCOUNT_CLASS.DEBT;
+  const isInvestment = klass === ACCOUNT_CLASS.INVESTMENT;
+  const tint = isDebt ? T.red : isInvestment ? T.accent : T.green;
+  const tintBg = isDebt ? T.redBg : isInvestment ? T.accentBg : T.greenBg;
+  const current = acct.balances?.current;
 
-/** Maps plaid_item Mongo _id -> institution display name (for "all banks" view). */
-function buildConnectionInstitutionMap(plaidItems) {
-  const m = {};
-  for (const p of plaidItems || []) {
-    if (p?._id != null) {
-      m[String(p._id)] = p.institutionName || 'Bank';
-    }
-  }
-  return m;
+  return (
+    <div style={{
+      padding: '1.1rem 1.3rem', borderRadius: '12px',
+      background: T.surface, border: `1px solid ${T.border}`, transition: 'border-color 0.2s',
+    }}
+      onMouseEnter={e => e.currentTarget.style.borderColor = T.borderHov}
+      onMouseLeave={e => e.currentTarget.style.borderColor = T.border}
+    >
+      {acct.institution_name && (
+        <div style={{
+          fontSize: '0.68rem', fontWeight: 600, color: T.accent,
+          letterSpacing: '0.04em', marginBottom: '0.35rem',
+        }}>
+          {acct.institution_name}
+        </div>
+      )}
+      <div style={{
+        fontSize: '0.72rem', fontWeight: 600, color: T.muted,
+        letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: '0.5rem',
+      }}>
+        {acct.name}
+        {acct.official_name && acct.official_name !== acct.name && (
+          <span style={{ fontWeight: 400, marginLeft: 6 }}>· {acct.official_name}</span>
+        )}
+      </div>
+      <div style={{
+        fontFamily: T.display,
+        fontSize: '1.85rem',
+        color: isDebt ? T.red : T.text,
+        letterSpacing: '-0.01em', lineHeight: 1.1,
+      }}>
+        {isDebt && current > 0 ? '-' : ''}{fmtUSD(current)}
+      </div>
+      {acct.balances?.available != null && !isDebt && (
+        <div style={{ fontSize: '0.78rem', color: T.muted, marginTop: '0.3rem' }}>
+          {fmtUSD(acct.balances.available)} available
+        </div>
+      )}
+      {isDebt && acct.balances?.limit != null && (
+        <div style={{ fontSize: '0.78rem', color: T.muted, marginTop: '0.3rem' }}>
+          {fmtUSD(acct.balances.limit)} limit
+        </div>
+      )}
+      <div style={{
+        marginTop: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
+        fontSize: '0.7rem', fontWeight: 500, letterSpacing: '0.05em',
+        color: tint, background: tintBg,
+        padding: '0.2rem 0.6rem', borderRadius: '99px',
+      }}>
+        <span style={{ width: 5, height: 5, borderRadius: '50%', background: tint, display: 'inline-block' }} />
+        {acct.subtype || acct.type}
+      </div>
+    </div>
+  );
 }
 
-function formatAccountForDashboard(dbAcct, institutionByConnectionId) {
-  const connId = dbAcct.connectionId != null ? String(dbAcct.connectionId) : null;
-  const institutionName =
-    institutionByConnectionId && connId
-      ? institutionByConnectionId[connId]
-      : undefined;
-  return {
-    account_id: dbAcct._id,
-    name: dbAcct.name,
-    official_name: dbAcct.officialName,
-    type: dbAcct.type,
-    subtype: dbAcct.subtype,
-    institution_name: institutionName,
-    balances: {
-      available: dbAcct.availableBalance,
-      current: dbAcct.currentBalance,
-      limit: dbAcct.limit,
-      iso_currency_code: dbAcct.isoCurrencyCode || 'USD',
-    },
-  };
-}
-
-function formatTransactionForDashboard(dbTxn, institutionByConnectionId) {
-  const pfc = dbTxn.personalFinanceCategory;
-  const connId = dbTxn.connectionId != null ? String(dbTxn.connectionId) : null;
-  const institutionName =
-    institutionByConnectionId && connId
-      ? institutionByConnectionId[connId]
-      : undefined;
-  return {
-    transaction_id: dbTxn._id,
-    name: dbTxn.merchantName || dbTxn.name,
-    amount: dbTxn.amount,
-    date: dbTxn.date ? dbTxn.date.split('T')[0] : null,
-    iso_currency_code: dbTxn.isoCurrencyCode || 'USD',
-    payment_channel: dbTxn.paymentChannel,
-    category: pfc?.primary || null,
-    category_detailed: pfc?.detailed || null,
-    account_id: dbTxn.accountId,
-    institution_name: institutionName,
-  };
+// Section header for each account group.  Only rendered when the group has
+// at least one account, so the layout stays tight.
+function AccountSection({ label, total, accounts, isDebt }) {
+  if (!accounts?.length) return null;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+        padding: '0 0.2rem',
+      }}>
+        <span style={{
+          fontSize: '0.7rem', fontWeight: 600, color: T.muted,
+          letterSpacing: '0.08em', textTransform: 'uppercase',
+        }}>
+          {label}
+          <span style={{ marginLeft: 6, fontWeight: 500, color: T.muted }}>
+            ({accounts.length})
+          </span>
+        </span>
+        <span style={{
+          fontSize: '0.82rem', fontWeight: 600,
+          color: isDebt ? T.red : T.text, fontFamily: T.display,
+        }}>
+          {isDebt ? '-' : ''}{fmtUSD(total)}
+        </span>
+      </div>
+      {accounts.map(a => <AccountRow key={a.account_id || a._id} acct={a} />)}
+    </div>
+  );
 }
 
 // ── Left panel ────────────────────────────────────────────────────────────────
-function LeftPanel({ accounts, transactions }) {
+// Accounts are grouped into Cash / Debt / Investments so the UI no longer
+// treats a mortgage or 401k as a "bank account".  Cashflow and top-spending
+// summaries sit below the account groups.
+export function LeftPanel({ accounts, transactions }) {
   const txList = transactions || [];
   const totalSpent  = txList.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0);
   const totalIncome = txList.filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
@@ -124,52 +168,33 @@ function LeftPanel({ accounts, transactions }) {
   });
   const topCats = Object.entries(byCat).sort((a, b) => b[1] - a[1]).slice(0, 4);
 
+  const grouped = useMemo(() => groupAccounts(accounts || []), [accounts]);
+  const sumCurrent = (list) =>
+    (list || []).reduce((s, a) => s + (Number(a.balances?.current) || 0), 0);
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
-      {accounts?.map(acct => {
-        const isCredit = acct.type?.includes('credit');
-        return (
-          <div key={acct.account_id} style={{
-            padding: '1.25rem 1.4rem', borderRadius: '12px',
-            background: T.surface, border: `1px solid ${T.border}`, transition: 'border-color 0.2s',
-          }}
-            onMouseEnter={e => e.currentTarget.style.borderColor = T.borderHov}
-            onMouseLeave={e => e.currentTarget.style.borderColor = T.border}
-          >
-            {acct.institution_name && (
-              <div style={{
-                fontSize: '0.68rem', fontWeight: 600, color: T.accent,
-                letterSpacing: '0.04em', marginBottom: '0.35rem',
-              }}>
-                {acct.institution_name}
-              </div>
-            )}
-            <div style={{ fontSize: '0.72rem', fontWeight: 600, color: T.muted, letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
-              {acct.name}
-              {acct.official_name && acct.official_name !== acct.name && (
-                <span style={{ fontWeight: 400, marginLeft: 6 }}>· {acct.official_name}</span>
-              )}
-            </div>
-            <div style={{ fontFamily: T.display, fontSize: '2rem', color: T.text, letterSpacing: '-0.01em', lineHeight: 1.1 }}>
-              {fmtUSD(acct.balances?.current)}
-            </div>
-            {acct.balances?.available != null && (
-              <div style={{ fontSize: '0.78rem', color: T.muted, marginTop: '0.3rem' }}>
-                {fmtUSD(acct.balances.available)} available
-              </div>
-            )}
-            <div style={{
-              marginTop: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
-              fontSize: '0.7rem', fontWeight: 500, letterSpacing: '0.05em',
-              color: isCredit ? T.red : T.green, background: isCredit ? T.redBg : T.greenBg,
-              padding: '0.2rem 0.6rem', borderRadius: '99px',
-            }}>
-              <span style={{ width: 5, height: 5, borderRadius: '50%', background: isCredit ? T.red : T.green, display: 'inline-block' }} />
-              {acct.subtype || acct.type}
-            </div>
-          </div>
-        );
-      })}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%' }}>
+      <AccountSection
+        label="Cash accounts"
+        accounts={grouped[ACCOUNT_CLASS.CASH]}
+        total={sumCurrent(grouped[ACCOUNT_CLASS.CASH])}
+      />
+      <AccountSection
+        label="Debt & liabilities"
+        accounts={grouped[ACCOUNT_CLASS.DEBT]}
+        total={sumCurrent(grouped[ACCOUNT_CLASS.DEBT])}
+        isDebt
+      />
+      <AccountSection
+        label="Investments"
+        accounts={grouped[ACCOUNT_CLASS.INVESTMENT]}
+        total={sumCurrent(grouped[ACCOUNT_CLASS.INVESTMENT])}
+      />
+      <AccountSection
+        label="Other"
+        accounts={grouped[ACCOUNT_CLASS.OTHER]}
+        total={sumCurrent(grouped[ACCOUNT_CLASS.OTHER])}
+      />
 
       <div style={{ padding: '1.25rem 1.4rem', borderRadius: '12px', background: T.surface, border: `1px solid ${T.border}` }}>
         <div style={{ fontSize: '0.72rem', fontWeight: 600, color: T.muted, letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: '1rem' }}>
@@ -227,12 +252,34 @@ function LeftPanel({ accounts, transactions }) {
 }
 
 // ── Right panel ───────────────────────────────────────────────────────────────
-function RightPanel({ transactions }) {
+export function RightPanel({ transactions, attributionMode = 'grouped' }) {
   const txList = transactions || [];
   const [filter, setFilter] = useState('ALL');
 
   const categories = ['ALL', ...new Set(txList.map(t => t.category).filter(Boolean))];
   const filtered = filter === 'ALL' ? txList : txList.filter(t => t.category === filter);
+
+  const sortedFiltered = useMemo(() => {
+    const list = [...filtered];
+    list.sort((a, b) => {
+      const da = a.date || '';
+      const db = b.date || '';
+      if (da !== db) return db.localeCompare(da);
+      return String(b.transaction_id).localeCompare(String(a.transaction_id));
+    });
+    return list;
+  }, [filtered]);
+
+  const grouped = useMemo(() => {
+    if (attributionMode !== 'grouped') return null;
+    const m = new Map();
+    for (const tx of sortedFiltered) {
+      const key = tx.institution_name || 'Other';
+      if (!m.has(key)) m.set(key, []);
+      m.get(key).push(tx);
+    }
+    return Array.from(m.entries());
+  }, [sortedFiltered, attributionMode]);
 
   return (
     <div style={{
@@ -278,42 +325,90 @@ function RightPanel({ transactions }) {
       </div>
 
       <div style={{ overflowY: 'auto', flex: 1 }}>
-        {filtered.length === 0
-          ? <div style={{ padding: '2rem 1.4rem', color: T.muted, fontSize: '0.82rem' }}>No transactions in this category.</div>
-          : filtered.map(tx => {
-              const cat = getCat(tx.category);
-              const isIncome = tx.amount < 0;
-              return (
-                <div key={tx.transaction_id} style={{
-                  display: 'grid', gridTemplateColumns: '28px 1fr 100px 88px',
-                  alignItems: 'center', gap: '0.6rem',
-                  padding: '0.65rem 1.4rem',
-                  borderBottom: `1px solid rgba(99,102,241,0.07)`,
-                  transition: 'background 0.12s', cursor: 'default',
-                }}
-                  onMouseEnter={e => e.currentTarget.style.background = T.surfaceHov}
-                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                >
-                  <span style={{ fontSize: '15px' }}>{cat.icon}</span>
-                  <div style={{ overflow: 'hidden' }}>
-                    <div style={{ fontSize: '0.83rem', fontWeight: 500, color: T.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {tx.name || '—'}
+        {sortedFiltered.length === 0 ? (
+          <div style={{ padding: '2rem 1.4rem', color: T.muted, fontSize: '0.82rem' }}>No transactions in this category.</div>
+        ) : attributionMode === 'grouped' && grouped ? (
+          grouped.map(([inst, rows]) => (
+            <div key={inst}>
+              <div style={{
+                position: 'sticky', top: 0, zIndex: 1,
+                padding: '0.45rem 1.4rem',
+                fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
+                color: T.accent,
+                background: 'rgba(13,20,36,0.92)',
+                borderBottom: `1px solid rgba(99,102,241,0.12)`,
+                backdropFilter: 'blur(6px)',
+              }}>
+                {inst}
+                <span style={{ marginLeft: 8, fontWeight: 500, color: T.muted }}>({rows.length})</span>
+              </div>
+              {rows.map(tx => {
+                const cat = getCat(tx.category);
+                const isIncome = tx.amount < 0;
+                return (
+                  <div key={tx.transaction_id} style={{
+                    display: 'grid', gridTemplateColumns: '28px 1fr 100px 88px',
+                    alignItems: 'center', gap: '0.6rem',
+                    padding: '0.65rem 1.4rem',
+                    borderBottom: `1px solid rgba(99,102,241,0.07)`,
+                    transition: 'background 0.12s', cursor: 'default',
+                  }}
+                    onMouseEnter={e => e.currentTarget.style.background = T.surfaceHov}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <span style={{ fontSize: '15px' }}>{cat.icon}</span>
+                    <div style={{ overflow: 'hidden' }}>
+                      <div style={{ fontSize: '0.83rem', fontWeight: 500, color: T.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {tx.name || '—'}
+                      </div>
+                      <div style={{ fontSize: '0.7rem', color: T.muted, marginTop: 1 }}>
+                        {cat.label}
+                      </div>
                     </div>
-                    <div style={{ fontSize: '0.7rem', color: T.muted, marginTop: 1 }}>
-                      {tx.institution_name ? (
-                        <><span style={{ color: T.accent }}>{tx.institution_name}</span><span> · </span></>
-                      ) : null}
-                      {cat.label}
+                    <div style={{ fontSize: '0.75rem', color: T.muted, textAlign: 'right' }}>{fmtDate(tx.date)}</div>
+                    <div style={{ fontSize: '0.83rem', fontWeight: 600, textAlign: 'right', color: isIncome ? T.green : T.text }}>
+                      {isIncome ? '+' : '-'}{fmtUSD(tx.amount)}
                     </div>
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: T.muted, textAlign: 'right' }}>{fmtDate(tx.date)}</div>
-                  <div style={{ fontSize: '0.83rem', fontWeight: 600, textAlign: 'right', color: isIncome ? T.green : T.text }}>
-                    {isIncome ? '+' : '-'}{fmtUSD(tx.amount)}
+                );
+              })}
+            </div>
+          ))
+        ) : (
+          sortedFiltered.map(tx => {
+            const cat = getCat(tx.category);
+            const isIncome = tx.amount < 0;
+            return (
+              <div key={tx.transaction_id} style={{
+                display: 'grid', gridTemplateColumns: '28px 1fr 100px 88px',
+                alignItems: 'center', gap: '0.6rem',
+                padding: '0.65rem 1.4rem',
+                borderBottom: `1px solid rgba(99,102,241,0.07)`,
+                transition: 'background 0.12s', cursor: 'default',
+              }}
+                onMouseEnter={e => e.currentTarget.style.background = T.surfaceHov}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+              >
+                <span style={{ fontSize: '15px' }}>{cat.icon}</span>
+                <div style={{ overflow: 'hidden' }}>
+                  <div style={{ fontSize: '0.83rem', fontWeight: 500, color: T.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {tx.name || '—'}
+                  </div>
+                  <div style={{ fontSize: '0.7rem', color: T.muted, marginTop: 1 }}>
+                    {tx.institution_name ? (
+                      <><span style={{ color: T.accent }}>{tx.institution_name}</span><span> · </span></>
+                    ) : null}
+                    {cat.label}
                   </div>
                 </div>
-              );
-            })
-        }
+                <div style={{ fontSize: '0.75rem', color: T.muted, textAlign: 'right' }}>{fmtDate(tx.date)}</div>
+                <div style={{ fontSize: '0.83rem', fontWeight: 600, textAlign: 'right', color: isIncome ? T.green : T.text }}>
+                  {isIncome ? '+' : '-'}{fmtUSD(tx.amount)}
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
     </div>
   );
@@ -359,63 +454,6 @@ function ErrorBanner({ message, onAction, actionLabel }) {
         >
           {actionLabel || 'Retry'}
         </button>
-      )}
-    </div>
-  );
-}
-
-// ── Dashboard (now receives data as props) ────────────────────────────────────
-function Dashboard({ accounts, transactions, bankName, onBackToBanks }) {
-  return (
-    <div style={{ fontFamily: T.sans, color: T.text }}>
-      <link rel="stylesheet" href={FONT_LINK} />
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-        <h2 style={{ margin: 0, fontFamily: T.display, fontSize: '1.6rem', color: T.text, letterSpacing: '-0.01em' }}>
-          {bankName ? `${bankName}` : 'My Finances'}
-        </h2>
-        {onBackToBanks && (
-          <button
-            onClick={onBackToBanks}
-            style={{
-              background: 'transparent',
-              border: `1px solid ${T.border}`,
-              color: T.muted,
-              padding: '0.35rem 0.75rem',
-              borderRadius: '8px',
-              fontSize: '0.78rem',
-              fontWeight: 500,
-              fontFamily: T.sans,
-              letterSpacing: '0.04em',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.borderColor = T.borderHov;
-              e.currentTarget.style.color = T.text;
-              e.currentTarget.style.background = T.surfaceHov;
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.borderColor = T.border;
-              e.currentTarget.style.color = T.muted;
-              e.currentTarget.style.background = 'transparent';
-            }}
-          >
-            Back to banks
-          </button>
-        )}
-      </div>
-
-      {(!accounts || accounts.length === 0) && (!transactions || transactions.length === 0) ? (
-        <div style={{ color: T.muted, fontSize: '0.85rem', padding: '2rem 0' }}>
-          No data available yet. Your transactions will appear here after syncing.
-        </div>
-      ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '1rem', alignItems: 'start' }}>
-          <LeftPanel accounts={accounts} transactions={transactions} />
-          <div style={{ height: '600px' }}>
-            <RightPanel transactions={transactions} />
-          </div>
-        </div>
       )}
     </div>
   );
@@ -521,215 +559,42 @@ function LoadingScreen({ message }) {
 
 // ── Root ──────────────────────────────────────────────────────────────────────
 export default function PlaidIntegration() {
-  // phase: "loading" | "select_bank" | "link" | "syncing" | "dashboard" | "error"
-  const [phase, setPhase] = useState('loading');
-  const [plaidItems, setPlaidItems] = useState([]);
-  const [selectedItem, setSelectedItem] = useState(null);
-  const [accounts, setAccounts] = useState([]);
-  const [transactions, setTransactions] = useState([]);
-  const [error, setError] = useState(null);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const {
+    phase,
+    plaidItems,
+    selectedItem,
+    error,
+    linkToken,
+    linkError,
+    reconnectToken,
+    reauthItem,
+    loadDashboardData,
+    loadDashboardDataAll,
+    onPlaidSuccess,
+    onReconnectSuccess,
+    handleAddNewBank,
+    handleBackToBanks,
+  } = useFinanceSession();
 
-  const [linkToken, setLinkToken] = useState(null);
-  const [linkError, setLinkError] = useState(null);
-
-  // Reconnect (update-mode) state — tracks which item needs credential rotation
-  const [reconnectToken, setReconnectToken] = useState(null);
-  const [reauthItem, setReauthItem] = useState(null);
-
-  // Step 1: check for existing plaid items
-  useEffect(() => {
-    fetchPlaidItems()
-      .then(items => {
-        const list = Array.isArray(items) ? items : [];
-        setPlaidItems(list);
-        if (list.length > 0) {
-          setPhase('select_bank');
-        } else {
-          initPlaidLink();
-          setPhase('link');
-        }
-      })
-      .catch(err => {
-        console.error('Failed to check plaid items:', err);
-        initPlaidLink();
-        setPhase('link');
-      });
-  }, []);
-
-  function initPlaidLink() {
-    createLinkToken()
-      .then(d => setLinkToken(d.link_token))
-      .catch(e => setLinkError(e.message));
-  }
-
-  function initReconnectLink(item) {
-    setReauthItem(item);
-    createReconnectLinkToken(item._id)
-      .then(d => setReconnectToken(d.link_token))
-      .catch(e => {
-        console.error('Could not create reconnect token:', e);
-        setError(e.message || 'Could not initiate re-authentication.');
-        setPhase('error');
-      });
-  }
-
-  // After bank selection or first-time connect: sync + load from DB (one Plaid item only)
-  async function loadDashboardData(item) {
-    setSelectedItem(item);
-    setPhase('syncing');
-    setError(null);
-
-    try {
-      await syncTransactions(item._id);
-    } catch (err) {
-      if (err.requiresReauth) {
-        initReconnectLink(item);
-        setPhase('reauth');
-        return;
-      }
-      console.error('Sync error:', err);
-      // Continue to load whatever DB data exists
-    }
-
-    try {
-      const now = new Date();
-      const thirtyDaysAgo = new Date(now);
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      const startDate = thirtyDaysAgo.toISOString().split('T')[0];
-      const endDate = now.toISOString().split('T')[0];
-
-      const [acctList, txnRes] = await Promise.all([
-        fetchAccountsByConnection(item._id)
-          .then(r => r.accounts || [])
-          .catch(() => []),
-        fetchTransactionsByDateRange({
-          startDate,
-          endDate,
-          connectionId: item._id,
-          limit: 200,
-        }),
-      ]);
-
-      const formattedAccounts = acctList.map(formatAccountForDashboard);
-      const formattedTxns = (txnRes.transactions || []).map(formatTransactionForDashboard);
-
-      setAccounts(formattedAccounts);
-      setTransactions(formattedTxns);
-      setPhase('dashboard');
-    } catch (err) {
-      console.error('Failed to load dashboard data:', err);
-      setError(err.message || 'Failed to load your financial data.');
-      setPhase('error');
-    }
-  }
-
-  // All linked items: sync each, then aggregate accounts + transactions (no connection filter)
-  async function loadDashboardDataAll() {
-    setSelectedItem({ _id: 'ALL', institutionName: 'All connected banks' });
-    setPhase('syncing');
-    setError(null);
-
-    try {
-      await Promise.all(
-        plaidItems.map(p =>
-          syncTransactions(p._id).catch(err => {
-            console.error('Sync error:', p._id, err);
-          })
-        )
-      );
-    } catch (err) {
-      console.error('Sync all error:', err);
-    }
-
-    try {
-      const now = new Date();
-      const thirtyDaysAgo = new Date(now);
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      const startDate = thirtyDaysAgo.toISOString().split('T')[0];
-      const endDate = now.toISOString().split('T')[0];
-
-      const [acctList, txnRes] = await Promise.all([
-        fetchAccounts().then(r => r.accounts || []).catch(() => []),
-        fetchTransactionsByDateRange({
-          startDate,
-          endDate,
-          limit: 500,
-        }),
-      ]);
-
-      const institutionByConnection = buildConnectionInstitutionMap(plaidItems);
-      const formattedAccounts = acctList.map(a => formatAccountForDashboard(a, institutionByConnection));
-      const formattedTxns = (txnRes.transactions || []).map(t =>
-        formatTransactionForDashboard(t, institutionByConnection)
-      );
-
-      setAccounts(formattedAccounts);
-      setTransactions(formattedTxns);
-      setPhase('dashboard');
-    } catch (err) {
-      console.error('Failed to load dashboard data:', err);
-      setError(err.message || 'Failed to load your financial data.');
-      setPhase('error');
-    }
-  }
-
-  // Plaid Link onSuccess — first-time connection
-  const onPlaidSuccess = useCallback(async (publicToken, metadata) => {
-    setPhase('syncing');
-    try {
-      const result = await connectBank({
-        publicToken,
-        institutionId: metadata.institution.institution_id,
-        institutionName: metadata.institution.name,
-      });
-      const newItem = result.plaidItem;
-      setPlaidItems(prev => [...prev, newItem]);
-      await loadDashboardData(newItem);
-    } catch (err) {
-      console.error('Connect failed:', err);
-      setError(err.message || 'Failed to connect bank.');
-      setPhase('error');
-    }
-  }, []);
+  const backToBanks = () => {
+    handleBackToBanks();
+    navigate('/home', { replace: true });
+  };
 
   const { open, ready } = usePlaidLink({ token: linkToken, onSuccess: onPlaidSuccess });
-
-  const onReconnectSuccess = useCallback(async (publicToken) => {
-    if (!reauthItem) return;
-    setPhase('syncing');
-    try {
-      await reconnectBank(reauthItem._id, publicToken);
-      await loadDashboardData(reauthItem);
-    } catch (err) {
-      console.error('Reconnect failed:', err);
-      if (err.requiresManualReconciliation) {
-        setError('Account mapping is ambiguous — manual reconciliation needed. Please contact support.');
-      } else {
-        setError(err.message || 'Reconnect failed.');
-      }
-      setPhase('error');
-    }
-  }, [reauthItem]);
 
   const { open: openReconnect, ready: reconnectReady } = usePlaidLink({
     token: reconnectToken,
     onSuccess: onReconnectSuccess,
   });
 
-  function handleAddNewBank() {
-    if (!linkToken) {
-      initPlaidLink();
-    }
-    setPhase('link');
-  }
-
-  function handleBackToBanks() {
-    if (plaidItems.length > 0) {
-      setPhase('select_bank');
-    } else {
-      setPhase('link');
-    }
-  }
+  useEffect(() => {
+    if (phase !== 'dashboard' || !selectedItem) return;
+    if (location.pathname !== '/home' && location.pathname !== '/home/') return;
+    navigate('/home/dashboard', { replace: true });
+  }, [phase, selectedItem, location.pathname, navigate]);
 
   // ── Render by phase ──
   // phase: "loading" | "select_bank" | "link" | "syncing" | "reauth" | "dashboard" | "error"
@@ -813,7 +678,7 @@ export default function PlaidIntegration() {
             {!reconnectToken ? 'Preparing…' : 'Re-authenticate bank'}
           </button>
           <button
-            onClick={handleBackToBanks}
+            onClick={backToBanks}
             style={{
               width: '100%', marginTop: '0.75rem', padding: '0.55rem',
               background: 'transparent', border: `1px solid ${T.border}`,
@@ -835,7 +700,7 @@ export default function PlaidIntegration() {
         <link rel="stylesheet" href={FONT_LINK} />
         <ErrorBanner
           message={error || 'Something went wrong.'}
-          onAction={handleBackToBanks}
+          onAction={backToBanks}
           actionLabel="Go back"
         />
       </div>
@@ -843,12 +708,8 @@ export default function PlaidIntegration() {
   }
 
   // phase === 'dashboard'
-  return (
-    <Dashboard
-      accounts={accounts}
-      transactions={transactions}
-      bankName={selectedItem?.institutionName}
-      onBackToBanks={handleBackToBanks}
-    />
-  );
+  if (!selectedItem) {
+    return <LoadingScreen message="Preparing your workspace…" />;
+  }
+  return <LoadingScreen message="Opening your dashboard…" />;
 }

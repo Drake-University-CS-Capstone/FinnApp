@@ -10,6 +10,6 @@ function ProtectedRoute({ children }) {
 
   // Otherwise → allow access
   return children;
-}``
+}
 
 export default ProtectedRoute;
