@@ -39,16 +39,16 @@ function Signup() {
 
   return (
     <div style={{
-      minHeight: "100vh",
+      minHeight: "100%",
       width: "100%",
       maxWidth: "100%",
-      background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
+      background: "#0d1424",
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
-      justifyContent: "flex-start",
+      justifyContent: "center",
       fontFamily: "'DM Sans', sans-serif",
-      padding: "1rem",
+      padding: "1rem 1rem 1.5rem",
       boxSizing: "border-box",
       overflowY: "auto",
     }}>

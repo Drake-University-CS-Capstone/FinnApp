@@ -4,7 +4,253 @@
   box-sizing: border-box;
 }
 
-body {
-  margin: 0;
+html,
+body,
+#root {
+  height: 100%;
 }
 
+body {
+  margin: 0;
+  background: #0d1424;
+}
+
+#root {
+  min-height: 100vh;
+  background: #0d1424;
+}
+
+.finance-shell {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+.finance-sidebar {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: 100vh;
+  padding: 1.5rem 1rem;
+  border-right: 1px solid rgba(99, 102, 241, 0.12);
+  background:
+    radial-gradient(circle at top left, rgba(129, 140, 248, 0.12), transparent 28%),
+    linear-gradient(180deg, rgba(19, 28, 46, 0.95), rgba(13, 20, 36, 0.98));
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+
+.finance-brand {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.35rem;
+  color: #e2e8f0;
+  letter-spacing: -0.01em;
+}
+
+.finance-sidebar-subtitle {
+  margin-top: 0.35rem;
+  color: #94a3b8;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.finance-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.finance-sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.72rem 0.85rem;
+  border-radius: 14px;
+  border: 1px solid transparent;
+  text-decoration: none;
+  color: #94a3b8;
+  font-size: 0.88rem;
+  font-weight: 500;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.finance-sidebar-link:hover {
+  color: #e2e8f0;
+  border-color: rgba(99, 102, 241, 0.25);
+  background: rgba(99, 102, 241, 0.08);
+}
+
+.finance-sidebar-link--active {
+  color: #c7d2fe;
+  border-color: rgba(99, 102, 241, 0.34);
+  background: rgba(99, 102, 241, 0.14);
+}
+
+.finance-sidebar-link__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.9;
+  flex-shrink: 0;
+}
+
+.finance-sidebar-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.finance-sidebar-profile {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.8rem 0.85rem;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(99, 102, 241, 0.14);
+}
+
+.finance-sidebar-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: rgba(129, 140, 248, 0.18);
+  color: #c7d2fe;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.finance-sidebar-profile__title {
+  color: #e2e8f0;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.finance-sidebar-profile__meta {
+  margin-top: 2px;
+  color: #64748b;
+  font-size: 0.72rem;
+}
+
+.finance-main {
+  min-width: 0;
+  padding: 1.35rem 1.5rem 2rem;
+}
+
+.finance-main-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.35rem;
+  padding: 0.95rem 1.1rem;
+  border-radius: 18px;
+  border: 1px solid rgba(99, 102, 241, 0.16);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.finance-main-toolbar__label {
+  color: #64748b;
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.finance-main-toolbar__title {
+  margin-top: 0.2rem;
+  color: #e2e8f0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.finance-main-toolbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+
+/* ── Finance UI utility classes ─────────────────────────────────────────
+   Used alongside inline styles (which most finance components rely on) for
+   the few things inline styles can't express cleanly: responsive grid
+   collapse, focus rings, scrollbar polish. Keep this section tight and
+   specific to finance surfaces. */
+
+.fin-two-col {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  align-items: start;
+}
+.fin-two-col--sidebar {
+  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+}
+.fin-two-col--right-sidebar {
+  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 360px);
+}
+
+.fin-two-col--transactions {
+  grid-template-columns: minmax(0, 1.75fr) minmax(240px, 320px);
+}
+
+.fin-account-master-detail {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(420px, 1.5fr) minmax(300px, 0.95fr);
+  align-items: start;
+}
+
+@media (max-width: 960px) {
+  .finance-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .finance-sidebar {
+    position: static;
+    height: auto;
+    border-right: none;
+    border-bottom: 1px solid rgba(99, 102, 241, 0.12);
+    padding-bottom: 1rem;
+  }
+
+  .finance-main {
+    padding-top: 1rem;
+  }
+
+  .fin-two-col,
+  .fin-two-col--sidebar,
+  .fin-two-col--right-sidebar,
+  .fin-two-col--transactions,
+  .fin-account-master-detail {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Dark-themed scrollbars for internal DataViewport regions. */
+.fin-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.fin-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.fin-scroll::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.25);
+  border-radius: 99px;
+}
+.fin-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.45);
+}
+
+input.fin-input:focus {
+  border-color: rgba(99, 102, 241, 0.6);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+}

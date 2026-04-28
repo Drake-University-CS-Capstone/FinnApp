@@ -1,10 +1,21 @@
 from datetime import datetime, timezone
+import re
+import unicodedata
 from app.extensions import get_db
 from bson import ObjectId
 
 
 def utc_now():
     return datetime.now(timezone.utc)
+
+
+def _normalize_institution_name(name):
+    """Stable key for matching the same institution across inconsistent IDs."""
+    if not name:
+        return ""
+    norm = unicodedata.normalize("NFKD", str(name)).encode("ascii", "ignore").decode("ascii")
+    norm = re.sub(r"[^a-z0-9]+", "", norm.lower())
+    return norm
 
 
 def get_effective_transactions_cursor(plaid_item_doc):
@@ -30,7 +41,28 @@ def get_all_plaid_items_by_user_id(user_id):
     try:
         user_id = ObjectId(user_id)
         result = plaid_items_collection.find({"userId": user_id}).sort("updatedAt", -1)
-        return list(result)
+        rows = list(result)
+        # De-dupe for UI: one row per institutionId, else one per normalized institution name.
+        # Keeps the most recently updated document when legacy duplicates exist.
+        seen_inst = set()
+        seen_name = set()
+        out = []
+        for doc in rows:
+            iid = doc.get("institutionId")
+            if iid:
+                key = ("id", str(iid))
+                if key in seen_inst:
+                    continue
+                seen_inst.add(key)
+                out.append(doc)
+                continue
+            nk = _normalize_institution_name(doc.get("institutionName"))
+            key = ("name", nk or str(doc.get("_id")))
+            if key in seen_name:
+                continue
+            seen_name.add(key)
+            out.append(doc)
+        return out
     except Exception as e:
         print(f"Error getting all plaid items by user ID: {e}")
         return []
@@ -92,10 +124,28 @@ def upsert_plaid_item(user_id, institution_id, institution_name, plaid_item_id, 
         user_id = ObjectId(user_id)
         now = utc_now()
 
-        existing = plaid_items_collection.find_one({
-            "userId": user_id,
-            "institutionId": institution_id
-        })
+        institution_id = (institution_id or "").strip() or None
+
+        existing = None
+        if institution_id:
+            existing = plaid_items_collection.find_one({
+                "userId": user_id,
+                "institutionId": institution_id
+            })
+
+        # Same bank linked again with a different institution_id string (metadata drift,
+        # sandbox quirks, or legacy rows) — merge onto the existing connection row
+        # keyed by normalized institution name so we do not create duplicate Items.
+        if not existing and institution_name:
+            name_key = _normalize_institution_name(institution_name)
+            if name_key:
+                candidates = list(
+                    plaid_items_collection.find({"userId": user_id}).sort("updatedAt", -1)
+                )
+                for doc in candidates:
+                    if _normalize_institution_name(doc.get("institutionName")) == name_key:
+                        existing = doc
+                        break
 
         if existing:
             item_id_changed = str(existing.get("plaidItemId", "")) != str(plaid_item_id)
@@ -108,6 +158,7 @@ def upsert_plaid_item(user_id, institution_id, institution_name, plaid_item_id, 
                 update_fields = {
                     "plaidItemId": plaid_item_id,
                     "accessToken": access_token,
+                    "institutionId": institution_id or existing.get("institutionId"),
                     "institutionName": institution_name,
                     "status": "active",
                     "cursor": "",
@@ -120,6 +171,7 @@ def upsert_plaid_item(user_id, institution_id, institution_name, plaid_item_id, 
                 update_fields = {
                     "plaidItemId": plaid_item_id,
                     "accessToken": access_token,
+                    "institutionId": institution_id or existing.get("institutionId"),
                     "institutionName": institution_name,
                     "status": "active",
                     "cursor": get_effective_transactions_cursor(existing),
