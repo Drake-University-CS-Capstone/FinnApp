@@ -215,7 +215,7 @@ function StockComponent() {
       {error && <p style={{ color: T.red }}>Error: {error}</p>}
       {data.length > 0 && (
         <div style={{
-          width: '100%',
+          width: '80%',
           height: '70%',
           border: `1px solid ${T.border}`,
           borderRadius: '12px',
@@ -223,7 +223,7 @@ function StockComponent() {
           backgroundColor: T.surface
         }}>
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data}>
+            <LineChart data={data} margin={{ left: 50, right: 30, top: 20, bottom: 20 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={T.border} />
               <XAxis 
                 dataKey="date" 
