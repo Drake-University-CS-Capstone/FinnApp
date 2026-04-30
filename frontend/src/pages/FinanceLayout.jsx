@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { to: '/home/transactions', label: 'Transactions' },
   { to: '/home/planning', label: 'Planning' },
   { to: '/home/net-worth', label: 'Net Worth' },
+  { to: '/home/stock-market', label: 'Stock Market' },
   { to: '/home/settings', label: 'Settings' },
 ];
 

@@ -24,7 +24,7 @@ const T = {
 function StockComponent() {
   const [symbol, setSymbol] = useState('IBM');
   const [functionType, setFunctionType] = useState('TIME_SERIES_DAILY');
-  const [timeRange, setTimeRange] = useState('1M');
+  const [timeRange, setTimeRange] = useState('1W');
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -58,7 +58,10 @@ function StockComponent() {
       else timeSeriesKey = 'Time Series (Daily)'; // fallback
 
       const timeSeries = json[timeSeriesKey];
-      if (!timeSeries) throw new Error('No data available');
+      if (!timeSeries) {
+        setData([]);
+        return;
+      }
       let chartData = Object.keys(timeSeries).map(date => ({
         date,
         close: parseFloat(timeSeries[date]['4. close'])
@@ -102,8 +105,8 @@ function StockComponent() {
   };
 
   useEffect(() => {
-    fetchData();
-  }, [symbol, functionType, timeRange]);
+    // Removed automatic fetching on mount
+  }, []);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -117,7 +120,7 @@ function StockComponent() {
       backgroundColor: T.bg,
       display: 'flex',
       flexDirection: 'column',
-      alignItems: 'center',
+      alignItems: 'flex-start',
       padding: '1rem'
     }}>
       <h1 style={{ color: T.text, marginBottom: '1rem', fontFamily: T.display }}>Stock Market</h1>
@@ -184,18 +187,18 @@ function StockComponent() {
             {timeRangeOptions.map(opt => <option key={opt.value} value={opt.value} style={{ background: T.bg, color: T.text }}>{opt.label}</option>)}
           </select>
         </label>
-{/*        <button
-        style={{
-          padding: '0.3rem 1rem',
-          borderRadius: '8px',
-          border: `1px solid ${T.accentBord}`,        //This is code for a button that is now rendered obselete
-          background: T.accentBg,
-          color: T.accent,
-          fontSize: '0.82rem',
-          fontWeight: 500,
-          fontFamily: T.sans,
-          cursor: 'pointer',
-          transition: 'all 0.15s',
+        <button type="submit"
+          style={{
+            padding: '0.3rem 1rem',
+            borderRadius: '8px',
+            border: `1px solid ${T.accentBord}`,
+            background: T.accentBg,
+            color: T.accent,
+            fontSize: '0.82rem',
+            fontWeight: 500,
+            fontFamily: T.sans,
+            cursor: 'pointer',
+            transition: 'all 0.15s',
           }}
           onMouseEnter={(e) => {
             e.target.style.background = T.surfaceHov;
@@ -205,7 +208,8 @@ function StockComponent() {
             e.target.style.background = T.accentBg;
             e.target.style.borderColor = T.accentBord;
           }}>
-        Fetch Data</button> */}
+          Get Data
+        </button>
       </form>
       {loading && <p style={{ color: T.muted }}>Loading...</p>}
       {error && <p style={{ color: T.red }}>Error: {error}</p>}
@@ -229,7 +233,7 @@ function StockComponent() {
               />
               <YAxis
                 tickCount={5}
-                label={{ value: 'Price (USD)', angle: -90, position: 'insideLeft', fill: T.text }}
+                label={{ value: 'Price (USD)', angle: -90, position: 'left', fill: T.text }}
                 tick={{ fill: T.text, fontSize: 12 }}
               />
               <Tooltip contentStyle={{ backgroundColor: T.surface, border: `1px solid ${T.border}`, color: T.text }} />

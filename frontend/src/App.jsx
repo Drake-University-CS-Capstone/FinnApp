@@ -61,6 +61,7 @@ function AppFrame() {
             <Route path="planning" element={<FinancePlanning />} />
             <Route path="net-worth" element={<FinanceNetWorth />} />
             <Route path="settings" element={<FinanceSettings />} />
+            <Route path="stock-market" element={<StockMarket />} />
             <Route path="hub" element={<Navigate to="/home/dashboard" replace />} />
             <Route path="cashflow" element={<Navigate to="/home/planning" replace />} />
             <Route path="activity" element={<Navigate to="/home/transactions" replace />} />
@@ -69,7 +70,6 @@ function AppFrame() {
             <Route path="investments" element={<Navigate to="/home/accounts" replace />} />
             <Route path="insights" element={<Navigate to="/home/planning" replace />} />
           </Route>
-          <Route path="/stock-market" element={<ProtectedRoute><StockMarket /></ProtectedRoute>} />
           <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
           <Route path="/other" element={<ProtectedRoute><Other /></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/login" replace />} />

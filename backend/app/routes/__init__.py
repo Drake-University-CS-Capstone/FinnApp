@@ -7,6 +7,7 @@ from .plaid_items import plaid_items_bp
 from .accounts import accounts_bp
 from .transactions import transactions_bp
 from .plaid_extended import plaid_extended_bp
+from .stock import stock_bp
 # from .external import external_bp  # Uncomment when you want to use it
 
 
@@ -21,6 +22,7 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(accounts_bp)
     app.register_blueprint(transactions_bp)
     app.register_blueprint(plaid_extended_bp)
+    app.register_blueprint(stock_bp)
 
     # app.register_blueprint(external_bp)  # Uncomment when you want to use it
 

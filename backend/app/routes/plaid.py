@@ -41,8 +41,8 @@ plaid_bp = Blueprint("plaid", __name__, url_prefix="/api/plaid")
 PLAID_CLIENT_ID = Config.PLAID_CLIENT_ID
 PLAID_SECRET = Config.PLAID_SECRET
 PLAID_ENV = getattr(Config, "PLAID_ENV", "sandbox")
-PLAID_PRODUCTS = getattr(Config, "PLAID_PRODUCTS", "transactions,balance").split(",")
-PLAID_COUNTRY_CODES = getattr(Config, "PLAID_COUNTRY_CODES", "US").split(",")
+PLAID_PRODUCTS = (getattr(Config, "PLAID_PRODUCTS", "transactions,balance") or "transactions,balance").split(",")
+PLAID_COUNTRY_CODES = (getattr(Config, "PLAID_COUNTRY_CODES", "US") or "US").split(",")
 PLAID_REDIRECT_URI = getattr(Config, "PLAID_REDIRECT_URI", None)
 
 host = plaid.Environment.Production if PLAID_ENV == "production" else plaid.Environment.Sandbox
